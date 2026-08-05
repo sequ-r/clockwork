@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:clockwork/main.dart';
 import 'package:clockwork/database/database.dart';
+import 'package:clockwork/database/dates.dart';
 import 'package:clockwork/providers/providers.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -46,13 +47,15 @@ Future<void> _tearDown(WidgetTester tester, _Harness harness) async {
 }
 
 void main() {
-  testWidgets('home screen renders overview', (tester) async {
+  testWidgets('home screen shows welcome message and add button',
+      (tester) async {
     final harness = await _pumpApp(tester);
 
-    expect(find.text('Clockwork'), findsOneWidget);
-    expect(find.text('Track time'), findsOneWidget);
+    expect(find.textContaining('Good '), findsOneWidget);
+    expect(find.text('Add time'), findsOneWidget);
     expect(find.text('Add a task...'), findsOneWidget);
-    expect(find.textContaining('Week total'), findsOneWidget);
+    expect(find.text('Week'), findsOneWidget);
+    expect(find.text('Month'), findsOneWidget);
 
     await _tearDown(tester, harness);
   });
@@ -65,6 +68,24 @@ void main() {
     await _settle(tester);
 
     expect(find.text('Write report'), findsWidgets);
+
+    await _tearDown(tester, harness);
+  });
+
+  testWidgets('add time dialog accepts hours', (tester) async {
+    final harness = await _pumpApp(tester);
+
+    await tester.tap(find.text('Add time'));
+    await _settle(tester);
+
+    expect(find.text('Hours'), findsOneWidget);
+    expect(find.text('Comment'), findsOneWidget);
+    await tester.tap(find.text('Add'));
+    await _settle(tester);
+
+    final entries =
+        await harness.db.timeEntryDao.getForDate(dateKey(DateTime.now()));
+    expect(entries.single.minutes, 60);
 
     await _tearDown(tester, harness);
   });

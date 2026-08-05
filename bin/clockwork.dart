@@ -2,6 +2,7 @@
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
+import 'package:clockwork/cli/parsing.dart';
 import 'package:clockwork/database/database.dart';
 import 'package:clockwork/database/dates.dart';
 import 'package:clockwork/database/paths.dart';
@@ -26,64 +27,43 @@ Future<Tag?> findTag(ClockworkDatabase db, String nameOrId) async {
   return null;
 }
 
-DateTime parseDateOption(String? value) {
-  if (value == null) {
-    final now = DateTime.now();
-    return DateTime(now.year, now.month, now.day);
-  }
-  return dateFromKey(value);
+const _autoCreateColors = [
+  0xFF64B5F6,
+  0xFF81C784,
+  0xFFFFB74D,
+  0xFFBA68C8,
+  0xFF4DD0E1,
+  0xFFE57373,
+  0xFFFFD54F,
+  0xFF90A4AE,
+];
+
+/// Finds a tag by name, creating it when missing.
+Future<Tag> findOrCreateTag(ClockworkDatabase db, String name) async {
+  final existing = await findTag(db, name);
+  if (existing != null) return existing;
+  final tags = await db.tagDao.getAll();
+  final id = await db.tagDao.createTag(
+    TagsCompanion.insert(
+      name: name,
+      color: _autoCreateColors[tags.length % _autoCreateColors.length],
+    ),
+  );
+  print('Created project "$name"');
+  final created = await db.tagDao.getAll();
+  return created.firstWhere((tag) => tag.id == id);
 }
 
-TimeOfDayish parseTime(String value) {
-  final parts = value.split(':');
-  if (parts.length != 2) {
-    throw UsageException('Invalid time "$value", expected HH:MM', '');
-  }
-  final h = int.tryParse(parts[0]);
-  final m = int.tryParse(parts[1]);
-  if (h == null || m == null || h < 0 || h > 23 || m < 0 || m > 59) {
-    throw UsageException('Invalid time "$value", expected HH:MM', '');
-  }
-  return TimeOfDayish(h, m);
-}
-
-class TimeOfDayish {
-  TimeOfDayish(this.hour, this.minute);
-  final int hour;
-  final int minute;
-}
-
-Duration parseDuration(String value) {
-  final match = RegExp(r'^(?:(\d+)h)?\s*(?:(\d+)m)?$').firstMatch(value);
-  if (match == null || (match[1] == null && match[2] == null)) {
-    throw UsageException('Invalid duration "$value", expected e.g. 1h30m', '');
-  }
-  final h = int.parse(match[1] ?? '0');
-  final m = int.parse(match[2] ?? '0');
-  return Duration(hours: h, minutes: m);
-}
-
-class TagCommand extends Command {
-  TagCommand(this.db) {
-    addSubcommand(TagAddCommand(db));
-    addSubcommand(TagListCommand(db));
-    addSubcommand(TagRemoveCommand(db));
-  }
-
-  final ClockworkDatabase db;
-
-  @override
-  String get name => 'tag';
-
-  @override
-  String get description => 'Manage tags (projects)';
-}
-
-class TagAddCommand extends Command {
-  TagAddCommand(this.db) {
+class AddCommand extends Command {
+  AddCommand(this.db) {
     argParser
-      ..addOption('parent', abbr: 'p', help: 'Parent tag name or id')
-      ..addOption('color', abbr: 'c', help: 'Color as RRGGBB hex');
+      ..addOption('project',
+          abbr: 'p', help: 'Project name or id (created if missing)')
+      ..addOption('day',
+          abbr: 'd',
+          help: 'today, yesterday or YYYY-MM-DD (default: today)')
+      ..addOption('comment', abbr: 'c', help: 'Optional comment')
+      ..addOption('task', help: 'Optional task id to link');
   }
 
   final ClockworkDatabase db;
@@ -92,43 +72,67 @@ class TagAddCommand extends Command {
   String get name => 'add';
 
   @override
-  String get description => 'Add a tag';
+  String get description =>
+      'Add worked time to a day.\n'
+      'Examples:\n'
+      '  clockwork add +2 --project p-name --day today\n'
+      '  clockwork add 90m --project p-name --day yesterday -c "fixes"';
 
   @override
   Future<void> run() async {
     final rest = argResults!.rest;
     if (rest.isEmpty) {
-      throw UsageException('Tag name required', usage);
+      throw UsageException('Duration required, e.g. +2, 90m or 1h30m', usage);
     }
-    final name = rest.join(' ');
-    int? parentId;
-    final parent = argResults!['parent'] as String?;
-    if (parent != null) {
-      final parentTag = await findTag(db, parent);
-      if (parentTag == null) {
-        stderr.writeln('Parent tag "$parent" not found');
-        exitCode = 1;
-        return;
-      }
-      parentId = parentTag.id;
+    final minutes = parseDurationMinutes(rest.first);
+    if (minutes == null) {
+      throw UsageException(
+          'Invalid duration "${rest.first}", e.g. +2, 90m or 1h30m', usage);
     }
-    final colorHex = argResults!['color'] as String?;
-    final color = colorHex == null
-        ? 0xFF64B5F6
-        : int.parse(colorHex, radix: 16) | 0xFF000000;
-    final id = await db.tagDao.createTag(
-      TagsCompanion.insert(
-        name: name,
-        color: color,
-        parentId: Value(parentId),
+
+    final day = parseDayOption(argResults!['day'] as String?);
+    if (day == null) {
+      throw UsageException(
+          'Invalid day "${argResults!['day']}", use today, yesterday '
+          'or YYYY-MM-DD',
+          usage);
+    }
+
+    int? tagId;
+    final project = argResults!['project'] as String?;
+    if (project != null) {
+      tagId = (await findOrCreateTag(db, project)).id;
+    }
+
+    int? taskId;
+    final taskOption = argResults!['task'] as String?;
+    if (taskOption != null) {
+      taskId = int.tryParse(taskOption);
+      if (taskId == null) throw UsageException('Invalid task id', usage);
+    }
+
+    final id = await db.timeEntryDao.createEntry(
+      TimeEntriesCompanion.insert(
+        date: dateKey(day),
+        minutes: minutes,
+        tagId: Value(tagId),
+        taskId: Value(taskId),
+        notes: Value(argResults!['comment'] as String?),
       ),
     );
-    print('Added tag #$id "$name"');
+    print(
+      'Added time entry #$id: ${formatDuration(Duration(minutes: minutes))} '
+      'on ${dateKey(day)}'
+      '${project != null ? ' for project "$project"' : ''}',
+    );
   }
 }
 
-class TagListCommand extends Command {
-  TagListCommand(this.db);
+class ListCommand extends Command {
+  ListCommand(this.db) {
+    argParser.addOption('day',
+        abbr: 'd', help: 'today, yesterday or YYYY-MM-DD');
+  }
 
   final ClockworkDatabase db;
 
@@ -136,47 +140,33 @@ class TagListCommand extends Command {
   String get name => 'list';
 
   @override
-  String get description => 'List tags';
+  String get description => 'List time entries of a day';
 
   @override
   Future<void> run() async {
-    final tags = await db.tagDao.getAll();
-    if (tags.isEmpty) {
-      print('No tags');
+    final day = parseDayOption(argResults!['day'] as String?);
+    if (day == null) {
+      throw UsageException('Invalid day "${argResults!['day']}"', usage);
+    }
+    final entries = await db.timeEntryDao.getForDate(dateKey(day));
+    if (entries.isEmpty) {
+      print('No time entries on ${dateKey(day)}');
       return;
     }
-    final byId = {for (final t in tags) t.id: t};
-    for (final tag in tags) {
-      final parent =
-          tag.parentId == null ? '' : ' (under ${byId[tag.parentId]?.name})';
-      print('${tag.id.toString().padLeft(3)}  ${tag.name}$parent');
+    final tags = {for (final tag in await db.tagDao.getAll()) tag.id: tag};
+    var total = Duration.zero;
+    for (final entry in entries) {
+      final project =
+          entry.tagId == null ? '' : '  #${tags[entry.tagId]?.name}';
+      final comment = entry.notes == null ? '' : '  ${entry.notes}';
+      final duration = Duration(minutes: entry.minutes);
+      total += duration;
+      print(
+        '${entry.id.toString().padLeft(3)}  '
+        '${formatDuration(duration).padLeft(8)}$project$comment',
+      );
     }
-  }
-}
-
-class TagRemoveCommand extends Command {
-  TagRemoveCommand(this.db);
-
-  final ClockworkDatabase db;
-
-  @override
-  String get name => 'rm';
-
-  @override
-  String get description => 'Remove a tag';
-
-  @override
-  Future<void> run() async {
-    final rest = argResults!.rest;
-    if (rest.isEmpty) throw UsageException('Tag name or id required', usage);
-    final tag = await findTag(db, rest.first);
-    if (tag == null) {
-      stderr.writeln('Tag "${rest.first}" not found');
-      exitCode = 1;
-      return;
-    }
-    await db.tagDao.deleteTag(tag.id);
-    print('Removed tag "${tag.name}"');
+    print('Total: ${formatDuration(total)}');
   }
 }
 
@@ -200,8 +190,9 @@ class TaskCommand extends Command {
 class TaskAddCommand extends Command {
   TaskAddCommand(this.db) {
     argParser
-      ..addOption('tag', abbr: 't', help: 'Tag name or id')
-      ..addOption('date', abbr: 'd', help: 'Date (YYYY-MM-DD)');
+      ..addOption('project', abbr: 'p', help: 'Project name or id')
+      ..addOption('day',
+          abbr: 'd', help: 'today, yesterday or YYYY-MM-DD');
   }
 
   final ClockworkDatabase db;
@@ -218,31 +209,35 @@ class TaskAddCommand extends Command {
     if (rest.isEmpty) throw UsageException('Task title required', usage);
     final title = rest.join(' ');
     int? tagId;
-    final tagOption = argResults!['tag'] as String?;
-    if (tagOption != null) {
-      final tag = await findTag(db, tagOption);
+    final project = argResults!['project'] as String?;
+    if (project != null) {
+      final tag = await findTag(db, project);
       if (tag == null) {
-        stderr.writeln('Tag "$tagOption" not found');
+        stderr.writeln('Project "$project" not found');
         exitCode = 1;
         return;
       }
       tagId = tag.id;
     }
-    final date = parseDateOption(argResults!['date'] as String?);
+    final day = parseDayOption(argResults!['day'] as String?);
+    if (day == null) {
+      throw UsageException('Invalid day "${argResults!['day']}"', usage);
+    }
     final id = await db.taskDao.createTask(
       TasksCompanion.insert(
         title: title,
-        date: dateKey(date),
+        date: dateKey(day),
         tagId: Value(tagId),
       ),
     );
-    print('Added task #$id "$title" on ${dateKey(date)}');
+    print('Added task #$id "$title" on ${dateKey(day)}');
   }
 }
 
 class TaskListCommand extends Command {
   TaskListCommand(this.db) {
-    argParser.addOption('date', abbr: 'd', help: 'Date (YYYY-MM-DD)');
+    argParser.addOption('day',
+        abbr: 'd', help: 'today, yesterday or YYYY-MM-DD');
   }
 
   final ClockworkDatabase db;
@@ -255,17 +250,21 @@ class TaskListCommand extends Command {
 
   @override
   Future<void> run() async {
-    final date = parseDateOption(argResults!['date'] as String?);
-    final tasks = await db.taskDao.getForDate(dateKey(date));
+    final day = parseDayOption(argResults!['day'] as String?);
+    if (day == null) {
+      throw UsageException('Invalid day "${argResults!['day']}"', usage);
+    }
+    final tasks = await db.taskDao.getForDate(dateKey(day));
     if (tasks.isEmpty) {
-      print('No tasks on ${dateKey(date)}');
+      print('No tasks on ${dateKey(day)}');
       return;
     }
-    final tags = {for (final t in await db.tagDao.getAll()) t.id: t};
+    final tags = {for (final tag in await db.tagDao.getAll()) tag.id: tag};
     for (final task in tasks) {
       final mark = task.done ? '[x]' : '[ ]';
-      final tag = task.tagId == null ? '' : '  #${tags[task.tagId]?.name}';
-      print('${task.id.toString().padLeft(3)}  $mark ${task.title}$tag');
+      final project =
+          task.tagId == null ? '' : '  #${tags[task.tagId]?.name}';
+      print('${task.id.toString().padLeft(3)}  $mark ${task.title}$project');
     }
   }
 }
@@ -314,30 +313,30 @@ class TaskRemoveCommand extends Command {
   }
 }
 
-class TimeCommand extends Command {
-  TimeCommand(this.db) {
-    addSubcommand(TimeAddCommand(db));
-    addSubcommand(TimeListCommand(db));
+class ProjectCommand extends Command {
+  ProjectCommand(this.db) {
+    addSubcommand(ProjectAddCommand(db));
+    addSubcommand(ProjectListCommand(db));
+    addSubcommand(ProjectRemoveCommand(db));
   }
 
   final ClockworkDatabase db;
 
   @override
-  String get name => 'time';
+  String get name => 'project';
 
   @override
-  String get description => 'Track worked time';
+  List<String> get aliases => const ['tag'];
+
+  @override
+  String get description => 'Manage projects (tags)';
 }
 
-class TimeAddCommand extends Command {
-  TimeAddCommand(this.db) {
+class ProjectAddCommand extends Command {
+  ProjectAddCommand(this.db) {
     argParser
-      ..addOption('tag', abbr: 't', help: 'Tag name or id')
-      ..addOption('task', help: 'Task id')
-      ..addOption('date', abbr: 'd', help: 'Date (YYYY-MM-DD)')
-      ..addOption('start', abbr: 's', help: 'Start time (HH:MM)')
-      ..addOption('end', abbr: 'e', help: 'End time (HH:MM, default: now)')
-      ..addOption('notes', abbr: 'n');
+      ..addOption('parent', abbr: 'P', help: 'Parent project name or id')
+      ..addOption('color', abbr: 'c', help: 'Color as RRGGBB hex');
   }
 
   final ClockworkDatabase db;
@@ -346,97 +345,41 @@ class TimeAddCommand extends Command {
   String get name => 'add';
 
   @override
-  String get description =>
-      'Add a time entry.\n'
-      'Examples:\n'
-      '  clockwork time add 1h30m --tag project\n'
-      '  clockwork time add --tag project --start 09:00 --end 11:15\n'
-      '  clockwork time add 45m --task 3';
+  String get description => 'Add a project';
 
   @override
   Future<void> run() async {
     final rest = argResults!.rest;
-    Duration? duration;
-    if (rest.isNotEmpty) duration = parseDuration(rest.first);
-
-    final startOption = argResults!['start'] as String?;
-    final endOption = argResults!['end'] as String?;
-    final date = parseDateOption(argResults!['date'] as String?);
-    final now = DateTime.now();
-
-    DateTime start;
-    DateTime end;
-    if (startOption != null && endOption != null) {
-      final s = parseTime(startOption);
-      final e = parseTime(endOption);
-      start = DateTime(date.year, date.month, date.day, s.hour, s.minute);
-      end = DateTime(date.year, date.month, date.day, e.hour, e.minute);
-    } else if (startOption != null) {
-      if (duration == null) {
-        throw UsageException('Duration required with --start', usage);
-      }
-      final s = parseTime(startOption);
-      start = DateTime(date.year, date.month, date.day, s.hour, s.minute);
-      end = start.add(duration);
-    } else if (duration != null) {
-      end = date == DateTime(now.year, now.month, now.day) && endOption == null
-          ? now
-          : DateTime(date.year, date.month, date.day, now.hour, now.minute);
-      if (endOption != null) {
-        final e = parseTime(endOption);
-        end = DateTime(date.year, date.month, date.day, e.hour, e.minute);
-      }
-      start = end.subtract(duration);
-    } else {
-      throw UsageException('Provide a duration and/or --start/--end', usage);
-    }
-
-    if (!end.isAfter(start)) {
-      stderr.writeln('End must be after start');
-      exitCode = 1;
-      return;
-    }
-
-    int? tagId;
-    final tagOption = argResults!['tag'] as String?;
-    if (tagOption != null) {
-      final tag = await findTag(db, tagOption);
-      if (tag == null) {
-        stderr.writeln('Tag "$tagOption" not found');
+    if (rest.isEmpty) throw UsageException('Project name required', usage);
+    final name = rest.join(' ');
+    int? parentId;
+    final parent = argResults!['parent'] as String?;
+    if (parent != null) {
+      final parentTag = await findTag(db, parent);
+      if (parentTag == null) {
+        stderr.writeln('Parent project "$parent" not found');
         exitCode = 1;
         return;
       }
-      tagId = tag.id;
+      parentId = parentTag.id;
     }
-
-    int? taskId;
-    final taskOption = argResults!['task'] as String?;
-    if (taskOption != null) {
-      taskId = int.tryParse(taskOption);
-      if (taskId == null) throw UsageException('Invalid task id', usage);
-    }
-
-    final id = await db.timeEntryDao.createEntry(
-      TimeEntriesCompanion.insert(
-        start: start,
-        end: end,
-        tagId: Value(tagId),
-        taskId: Value(taskId),
-        notes: Value(argResults!['notes'] as String?),
+    final colorHex = argResults!['color'] as String?;
+    final color = colorHex == null
+        ? 0xFF64B5F6
+        : int.parse(colorHex, radix: 16) | 0xFF000000;
+    final id = await db.tagDao.createTag(
+      TagsCompanion.insert(
+        name: name,
+        color: color,
+        parentId: Value(parentId),
       ),
     );
-    print(
-      'Added time entry #$id: '
-      '${DateFormat.Hm().format(start)}-${DateFormat.Hm().format(end)} '
-      '(${formatDuration(end.difference(start))})',
-    );
+    print('Added project #$id "$name"');
   }
 }
 
-class TimeListCommand extends Command {
-  TimeListCommand(this.db) {
-    argParser.addOption('date', abbr: 'd', help: 'Date (YYYY-MM-DD)');
-  }
+class ProjectListCommand extends Command {
+  ProjectListCommand(this.db);
 
   final ClockworkDatabase db;
 
@@ -444,33 +387,50 @@ class TimeListCommand extends Command {
   String get name => 'list';
 
   @override
-  String get description => 'List time entries';
+  String get description => 'List projects';
 
   @override
   Future<void> run() async {
-    final date = parseDateOption(argResults!['date'] as String?);
-    final next = date.add(const Duration(days: 1));
-    final entries = await db.timeEntryDao.watchRange(date, next).first;
-    entries.sort((a, b) => a.start.compareTo(b.start));
-    if (entries.isEmpty) {
-      print('No time entries on ${dateKey(date)}');
+    final tags = await db.tagDao.getAll();
+    if (tags.isEmpty) {
+      print('No projects');
       return;
     }
-    final tags = {for (final t in await db.tagDao.getAll()) t.id: t};
-    var total = Duration.zero;
-    for (final entry in entries) {
-      final tag = entry.tagId == null ? '' : '  #${tags[entry.tagId]?.name}';
-      final notes = entry.notes == null ? '' : '  ${entry.notes}';
-      final d = entryDuration(entry.start, entry.end);
-      total += d;
-      print(
-        '${entry.id.toString().padLeft(3)}  '
-        '${DateFormat.Hm().format(entry.start)}-'
-        '${DateFormat.Hm().format(entry.end)}  '
-        '${formatDuration(d).padLeft(9)}$tag$notes',
-      );
+    final byId = {for (final tag in tags) tag.id: tag};
+    for (final tag in tags) {
+      final parent = tag.parentId == null
+          ? ''
+          : ' (under ${byId[tag.parentId]?.name})';
+      print('${tag.id.toString().padLeft(3)}  ${tag.name}$parent');
     }
-    print('Total: ${formatDuration(total)}');
+  }
+}
+
+class ProjectRemoveCommand extends Command {
+  ProjectRemoveCommand(this.db);
+
+  final ClockworkDatabase db;
+
+  @override
+  String get name => 'rm';
+
+  @override
+  String get description => 'Remove a project';
+
+  @override
+  Future<void> run() async {
+    final rest = argResults!.rest;
+    if (rest.isEmpty) {
+      throw UsageException('Project name or id required', usage);
+    }
+    final tag = await findTag(db, rest.first);
+    if (tag == null) {
+      stderr.writeln('Project "${rest.first}" not found');
+      exitCode = 1;
+      return;
+    }
+    await db.tagDao.deleteTag(tag.id);
+    print('Removed project "${tag.name}"');
   }
 }
 
@@ -490,33 +450,22 @@ class TodayCommand extends Command {
     final key = dateKey(DateTime.now());
     final tasks = await db.taskDao.getForDate(key);
     print('== Tasks ($key) ==');
-    if (tasks.isEmpty) {
-      print('  (none)');
-    }
+    if (tasks.isEmpty) print('  (none)');
     for (final task in tasks) {
       print('  ${task.done ? '[x]' : '[ ]'} ${task.title}');
     }
     print('');
-    final next = DateTime.now().add(const Duration(days: 1));
-    final start = DateTime(
-        DateTime.now().year, DateTime.now().month, DateTime.now().day);
-    final entries = await db.timeEntryDao.watchRange(start, next).first;
-    entries.sort((a, b) => a.start.compareTo(b.start));
-    final tags = {for (final t in await db.tagDao.getAll()) t.id: t};
+    final entries = await db.timeEntryDao.getForDate(key);
+    final tags = {for (final tag in await db.tagDao.getAll()) tag.id: tag};
     var total = Duration.zero;
     print('== Time ==');
-    if (entries.isEmpty) {
-      print('  (none)');
-    }
+    if (entries.isEmpty) print('  (none)');
     for (final entry in entries) {
-      final tag = entry.tagId == null ? '' : '  #${tags[entry.tagId]?.name}';
-      final d = entryDuration(entry.start, entry.end);
-      total += d;
-      print(
-        '  ${DateFormat.Hm().format(entry.start)}-'
-        '${DateFormat.Hm().format(entry.end)}  '
-        '${formatDuration(d)}$tag',
-      );
+      final project =
+          entry.tagId == null ? '' : '  #${tags[entry.tagId]?.name}';
+      final duration = Duration(minutes: entry.minutes);
+      total += duration;
+      print('  ${formatDuration(duration)}$project');
     }
     print('Total: ${formatDuration(total)}');
   }
@@ -536,39 +485,39 @@ class WeekCommand extends Command {
   @override
   Future<void> run() async {
     final monday = startOfWeek(DateTime.now());
-    final nextMonday = monday.add(const Duration(days: 7));
-    final entries = await db.timeEntryDao.watchRange(monday, nextMonday).first;
-    final tags = {for (final t in await db.tagDao.getAll()) t.id: t};
-
+    final keys = weekKeys(DateTime.now());
     final perDay = <String, Duration>{};
     final perTag = <int, Duration>{};
     var total = Duration.zero;
-    for (final entry in entries) {
-      final d = entryDuration(entry.start, entry.end);
-      total += d;
-      final key = dateKey(entry.start);
-      perDay[key] = (perDay[key] ?? Duration.zero) + d;
-      if (entry.tagId != null) {
-        perTag[entry.tagId!] = (perTag[entry.tagId!] ?? Duration.zero) + d;
+    for (final key in keys) {
+      for (final entry in await db.timeEntryDao.getForDate(key)) {
+        final duration = Duration(minutes: entry.minutes);
+        total += duration;
+        perDay[key] = (perDay[key] ?? Duration.zero) + duration;
+        final tagId = entry.tagId;
+        if (tagId != null) {
+          perTag[tagId] = (perTag[tagId] ?? Duration.zero) + duration;
+        }
       }
     }
+    final tags = {for (final tag in await db.tagDao.getAll()) tag.id: tag};
 
     print(
       '== Week ${DateFormat.MMMd().format(monday)} - '
-      '${DateFormat.MMMd().format(nextMonday.subtract(const Duration(days: 1)))} ==',
+      '${DateFormat.MMMd().format(monday.add(const Duration(days: 6)))} ==',
     );
-    for (var i = 0; i < 7; i++) {
+    for (var i = 0; i < keys.length; i++) {
       final day = monday.add(Duration(days: i));
-      final key = dateKey(day);
-      final d = perDay[key];
+      final dayTotal = perDay[keys[i]];
       print(
         '  ${DateFormat.E().format(day)} ${day.day.toString().padLeft(2)}  '
-        '${d == null ? '-' : formatDuration(d)}',
+        '${dayTotal == null ? '-' : formatDuration(dayTotal)}',
       );
     }
     print('');
     for (final tagId in perTag.keys) {
-      print('  #${tags[tagId]?.name ?? tagId}: ${formatDuration(perTag[tagId]!)}');
+      print('  #${tags[tagId]?.name ?? tagId}: '
+          '${formatDuration(perTag[tagId]!)}');
     }
     print('Total: ${formatDuration(total)}');
   }
@@ -581,9 +530,10 @@ Future<void> main(List<String> arguments) async {
     'Track tasks and worked time from the terminal.\n'
     'Data is stored in ${databaseFile().path}',
   )
-    ..addCommand(TagCommand(db))
+    ..addCommand(AddCommand(db))
+    ..addCommand(ListCommand(db))
     ..addCommand(TaskCommand(db))
-    ..addCommand(TimeCommand(db))
+    ..addCommand(ProjectCommand(db))
     ..addCommand(TodayCommand(db))
     ..addCommand(WeekCommand(db));
 

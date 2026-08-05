@@ -7,50 +7,61 @@ import '../database/database.dart';
 import '../database/dates.dart';
 import '../providers/providers.dart';
 
+/// Main "+ button" workflow: choose hours to add to the day, attach an
+/// optional comment and tag, then confirm.
 class AddTimeDialog extends ConsumerStatefulWidget {
-  const AddTimeDialog({super.key});
+  const AddTimeDialog({super.key, this.initialTaskId});
+
+  final int? initialTaskId;
 
   @override
   ConsumerState<AddTimeDialog> createState() => _AddTimeDialogState();
 }
 
 class _AddTimeDialogState extends ConsumerState<AddTimeDialog> {
+  static const _quickPicks = [15, 30, 60, 120, 240];
+
+  late final TextEditingController _hoursController;
+  late final TextEditingController _notesController;
   late DateTime _date;
-  late TimeOfDay _start;
-  late TimeOfDay _end;
   int? _tagId;
   int? _taskId;
-  final _notesController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
+    _hoursController = TextEditingController(text: '1');
+    _notesController = TextEditingController();
     _date = ref.read(selectedDateProvider);
-    final now = TimeOfDay.fromDateTime(DateTime.now());
-    final roundedMinute = (now.minute / 5).round() * 5;
-    var hour = now.hour;
-    var minute = roundedMinute;
-    if (minute >= 60) {
-      minute = 0;
-      hour = (hour + 1) % 24;
-    }
-    _end = TimeOfDay(hour: hour, minute: minute);
-    _start = TimeOfDay(hour: (hour + 23) % 24, minute: minute);
+    _taskId = widget.initialTaskId;
   }
 
   @override
   void dispose() {
+    _hoursController.dispose();
     _notesController.dispose();
     super.dispose();
   }
 
-  DateTime get _startDateTime =>
-      DateTime(_date.year, _date.month, _date.day, _start.hour, _start.minute);
+  int? get _minutes {
+    final hours = double.tryParse(_hoursController.text.trim());
+    if (hours == null || hours <= 0) return null;
+    return (hours * 60).round();
+  }
 
-  DateTime get _endDateTime =>
-      DateTime(_date.year, _date.month, _date.day, _end.hour, _end.minute);
+  void _setHours(double hours) {
+    final rounded = (hours * 100).round() / 100;
+    _hoursController.text = rounded == rounded.roundToDouble()
+        ? rounded.toInt().toString()
+        : rounded.toString();
+    setState(() {});
+  }
 
-  Duration get _duration => _endDateTime.difference(_startDateTime);
+  void _step(double delta) {
+    final current = double.tryParse(_hoursController.text.trim()) ?? 0;
+    final next = (current + delta).clamp(0.25, 24.0);
+    _setHours(next);
+  }
 
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
@@ -62,34 +73,18 @@ class _AddTimeDialogState extends ConsumerState<AddTimeDialog> {
     if (picked != null) setState(() => _date = picked);
   }
 
-  Future<void> _pickTime({required bool isStart}) async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: isStart ? _start : _end,
-    );
-    if (picked == null) return;
-    setState(() {
-      if (isStart) {
-        _start = picked;
-      } else {
-        _end = picked;
-      }
-    });
-  }
-
-  Future<void> _save() async {
-    if (_duration <= Duration.zero) return;
+  Future<void> _confirm() async {
+    final minutes = _minutes;
+    if (minutes == null) return;
     await ref.read(timeEntryDaoProvider).createEntry(
           TimeEntriesCompanion.insert(
-            start: _startDateTime,
-            end: _endDateTime,
+            date: dateKey(_date),
+            minutes: minutes,
             tagId: Value(_tagId),
             taskId: Value(_taskId),
-            notes: Value(
-              _notesController.text.trim().isEmpty
-                  ? null
-                  : _notesController.text.trim(),
-            ),
+            notes: Value(_notesController.text.trim().isEmpty
+                ? null
+                : _notesController.text.trim()),
           ),
         );
     if (mounted) Navigator.pop(context);
@@ -104,12 +99,60 @@ class _AddTimeDialogState extends ConsumerState<AddTimeDialog> {
         tasks.where((t) => _tagId == null || t.tagId == _tagId).toList();
 
     return AlertDialog(
-      title: const Text('Track time'),
+      title: Text('Add time on ${DateFormat.MMMd().format(_date)}'),
       content: SizedBox(
         width: 420,
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Text('Hours', style: Theme.of(context).textTheme.labelLarge),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton.filledTonal(
+                  onPressed: () => _step(-0.5),
+                  icon: const Icon(Icons.remove),
+                ),
+                const SizedBox(width: 12),
+                SizedBox(
+                  width: 100,
+                  child: TextField(
+                    controller: _hoursController,
+                    keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true),
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                      suffixText: 'h',
+                    ),
+                    textAlign: TextAlign.center,
+                    onChanged: (_) => setState(() {}),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                IconButton.filledTonal(
+                  onPressed: () => _step(0.5),
+                  icon: const Icon(Icons.add),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              alignment: WrapAlignment.center,
+              children: [
+                for (final pick in _quickPicks)
+                  ChoiceChip(
+                    label: Text(pick < 60 ? '${pick}m' : '${pick ~/ 60}h'),
+                    selected: _minutes == pick,
+                    onSelected: (_) => _setHours(pick / 60),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
@@ -145,36 +188,7 @@ class _AddTimeDialogState extends ConsumerState<AddTimeDialog> {
                         DropdownMenuItem(
                             value: task.id, child: Text(task.title)),
                     ],
-                    onChanged: (value) =>
-                        setState(() => _taskId = value),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _pickDate,
-                    icon: const Icon(Icons.calendar_today),
-                    label: Text(DateFormat.yMMMd().format(_date)),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _pickTime(isStart: true),
-                    icon: const Icon(Icons.schedule),
-                    label: Text(_start.format(context)),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _pickTime(isStart: false),
-                    icon: const Icon(Icons.schedule),
-                    label: Text(_end.format(context)),
+                    onChanged: (value) => setState(() => _taskId = value),
                   ),
                 ),
               ],
@@ -182,17 +196,17 @@ class _AddTimeDialogState extends ConsumerState<AddTimeDialog> {
             const SizedBox(height: 12),
             TextField(
               controller: _notesController,
-              decoration: const InputDecoration(labelText: 'Notes'),
+              decoration: const InputDecoration(labelText: 'Comment'),
             ),
             const SizedBox(height: 12),
-            if (_duration <= Duration.zero)
-              Text(
-                'End time must be after start time',
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              )
-            else
-              Text('Duration: ${formatDuration(_duration)}',
-                  style: Theme.of(context).textTheme.titleMedium),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: OutlinedButton.icon(
+                onPressed: _pickDate,
+                icon: const Icon(Icons.calendar_today, size: 16),
+                label: Text(DateFormat.yMMMd().format(_date)),
+              ),
+            ),
           ],
         ),
       ),
@@ -201,9 +215,10 @@ class _AddTimeDialogState extends ConsumerState<AddTimeDialog> {
           onPressed: () => Navigator.pop(context),
           child: const Text('Cancel'),
         ),
-        FilledButton(
-          onPressed: _duration > Duration.zero ? _save : null,
-          child: const Text('Save'),
+        FilledButton.icon(
+          onPressed: _minutes != null ? _confirm : null,
+          icon: const Icon(Icons.check),
+          label: const Text('Add'),
         ),
       ],
     );

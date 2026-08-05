@@ -20,6 +20,7 @@ class Tasks extends Table {
   TextColumn get notes => text().nullable()();
 }
 
+/// A block of worked time on a given day.
 class TimeEntries extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get tagId =>
@@ -27,8 +28,8 @@ class TimeEntries extends Table {
   IntColumn get taskId => integer()
       .nullable()
       .references(Tasks, #id, onDelete: KeyAction.setNull)();
-  DateTimeColumn get start => dateTime()();
-  DateTimeColumn get end => dateTime()();
+  TextColumn get date => text().withLength(min: 10, max: 10)();
+  IntColumn get minutes => integer()();
   TextColumn get notes => text().nullable()();
 }
 
@@ -80,11 +81,18 @@ class TimeEntryDao extends DatabaseAccessor<ClockworkDatabase>
     with _$TimeEntryDaoMixin {
   TimeEntryDao(super.db);
 
-  Stream<List<TimeEntry>> watchRange(DateTime start, DateTime end) =>
-      (select(timeEntries)
-            ..where((t) =>
-                t.start.isSmallerThanValue(end) &
-                t.end.isBiggerOrEqualValue(start)))
+  Stream<List<TimeEntry>> watchForDate(String date) =>
+      (select(timeEntries)..where((t) => t.date.equals(date))).watch();
+
+  Stream<List<TimeEntry>> watchDateRange(Iterable<String> dates) =>
+      (select(timeEntries)..where((t) => t.date.isIn(dates.toList())))
+          .watch();
+
+  Future<List<TimeEntry>> getForDate(String date) =>
+      (select(timeEntries)..where((t) => t.date.equals(date))).get();
+
+  Stream<List<TimeEntry>> watchForTaskIds(Iterable<int> taskIds) =>
+      (select(timeEntries)..where((t) => t.taskId.isIn(taskIds.toList())))
           .watch();
 
   Future<int> createEntry(TimeEntriesCompanion companion) =>
@@ -94,12 +102,14 @@ class TimeEntryDao extends DatabaseAccessor<ClockworkDatabase>
       (delete(timeEntries)..where((t) => t.id.equals(id))).go();
 }
 
-@DriftDatabase(tables: [Tags, Tasks, TimeEntries], daos: [TagDao, TaskDao, TimeEntryDao])
+@DriftDatabase(
+    tables: [Tags, Tasks, TimeEntries],
+    daos: [TagDao, TaskDao, TimeEntryDao])
 class ClockworkDatabase extends _$ClockworkDatabase {
   ClockworkDatabase(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -107,5 +117,26 @@ class ClockworkDatabase extends _$ClockworkDatabase {
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');
         },
+        onUpgrade: (migrator, from, to) async {
+          if (from < 2) {
+            await _migrateToDurationEntries(migrator);
+          }
+        },
       );
+
+  /// Converts schema v1 entries (start/end timestamps) into v2
+  /// per-day durations.
+  Future<void> _migrateToDurationEntries(Migrator migrator) async {
+    await customStatement('ALTER TABLE time_entries RENAME TO time_entries_old');
+    await migrator.createTable(timeEntries);
+    await customStatement('''
+      INSERT INTO time_entries (id, tag_id, task_id, date, minutes, notes)
+      SELECT id, tag_id, task_id,
+        date(start, 'unixepoch', 'localtime'),
+        CAST((end - start) / 60 AS INTEGER),
+        notes
+      FROM time_entries_old
+    ''');
+    await customStatement('DROP TABLE time_entries_old');
+  }
 }

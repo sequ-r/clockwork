@@ -31,7 +31,7 @@ class TagManagerDialog extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tags = ref.watch(tagsProvider).valueOrNull ?? [];
-    final totals = ref.watch(weeklyTagTotalsProvider);
+    final totals = ref.watch(visibleTagTotalsProvider);
     final byId = {for (final t in tags) t.id: t};
 
     return AlertDialog(

@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
 
-import '../database/dates.dart';
 import '../providers/providers.dart';
 import '../services/tray_service.dart';
 import '../widgets/add_time_dialog.dart';
+import '../widgets/calendar_panel.dart';
+import '../widgets/left_panel.dart';
+import '../widgets/quick_add_dialog.dart';
 import '../widgets/tag_filter_bar.dart';
 import '../widgets/tag_manager_dialog.dart';
-import '../widgets/task_panel.dart';
-import '../widgets/week_view.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -19,6 +19,8 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
+  int _lastQuickAddRequest = 0;
+
   @override
   void initState() {
     super.initState();
@@ -48,23 +50,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
     windowManager.hide();
   }
 
+  void _openAddTimeDialog() {
+    showDialog<void>(
+      context: context,
+      builder: (_) => const AddTimeDialog(),
+    );
+  }
+
+  void _openQuickAddDialog() {
+    showDialog<void>(
+      context: context,
+      builder: (_) => const QuickAddDialog(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final weekTotal = ref.watch(weekTotalProvider);
+    final quickAddRequest = ref.watch(quickAddRequestProvider);
+    if (quickAddRequest != _lastQuickAddRequest) {
+      _lastQuickAddRequest = quickAddRequest;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _openQuickAddDialog();
+      });
+    }
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Clockwork'),
         actions: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Center(
-              child: Text(
-                'Week total: ${formatDuration(weekTotal)}',
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
-            ),
-          ),
           IconButton(
             tooltip: 'Manage tags',
             icon: const Icon(Icons.label_outline),
@@ -75,29 +88,74 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
           ),
         ],
       ),
-      body: const Column(
-        children: [
-          TagFilterBar(),
-          Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isWide = constraints.maxWidth >= 720;
+          if (isWide) {
+            return Column(
               children: [
-                SizedBox(width: 380, child: TaskPanel()),
-                VerticalDivider(width: 1, thickness: 1),
-                Expanded(child: WeekView()),
+                const TagFilterBar(),
+                Expanded(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: const [
+                      SizedBox(width: 380, child: LeftPanel()),
+                      VerticalDivider(width: 1, thickness: 1),
+                      Expanded(child: CalendarPanel()),
+                    ],
+                  ),
+                ),
               ],
-            ),
-          ),
-        ],
+            );
+          }
+          return const _NarrowLayout();
+        },
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => showDialog<void>(
-          context: context,
-          builder: (_) => const AddTimeDialog(),
-        ),
+        onPressed: _openAddTimeDialog,
         icon: const Icon(Icons.add),
-        label: const Text('Track time'),
+        label: const Text('Add time'),
       ),
+    );
+  }
+}
+
+class _NarrowLayout extends StatefulWidget {
+  const _NarrowLayout();
+
+  @override
+  State<_NarrowLayout> createState() => _NarrowLayoutState();
+}
+
+class _NarrowLayoutState extends State<_NarrowLayout> {
+  int _tab = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        const TagFilterBar(),
+        Expanded(
+          child: IndexedStack(
+            index: _tab,
+            children: const [LeftPanel(), CalendarPanel()],
+          ),
+        ),
+        NavigationBar(
+          selectedIndex: _tab,
+          onDestinationSelected: (index) => setState(() => _tab = index),
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.checklist),
+              label: 'Today',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.calendar_month),
+              label: 'Calendar',
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

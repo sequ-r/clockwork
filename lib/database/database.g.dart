@@ -783,22 +783,28 @@ class $TimeEntriesTable extends TimeEntries
       'REFERENCES tasks (id) ON DELETE SET NULL',
     ),
   );
-  static const VerificationMeta _startMeta = const VerificationMeta('start');
+  static const VerificationMeta _dateMeta = const VerificationMeta('date');
   @override
-  late final GeneratedColumn<DateTime> start = GeneratedColumn<DateTime>(
-    'start',
+  late final GeneratedColumn<String> date = GeneratedColumn<String>(
+    'date',
     aliasedName,
     false,
-    type: DriftSqlType.dateTime,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 10,
+      maxTextLength: 10,
+    ),
+    type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _endMeta = const VerificationMeta('end');
+  static const VerificationMeta _minutesMeta = const VerificationMeta(
+    'minutes',
+  );
   @override
-  late final GeneratedColumn<DateTime> end = GeneratedColumn<DateTime>(
-    'end',
+  late final GeneratedColumn<int> minutes = GeneratedColumn<int>(
+    'minutes',
     aliasedName,
     false,
-    type: DriftSqlType.dateTime,
+    type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
   static const VerificationMeta _notesMeta = const VerificationMeta('notes');
@@ -811,7 +817,14 @@ class $TimeEntriesTable extends TimeEntries
     requiredDuringInsert: false,
   );
   @override
-  List<GeneratedColumn> get $columns => [id, tagId, taskId, start, end, notes];
+  List<GeneratedColumn> get $columns => [
+    id,
+    tagId,
+    taskId,
+    date,
+    minutes,
+    notes,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -839,21 +852,21 @@ class $TimeEntriesTable extends TimeEntries
         taskId.isAcceptableOrUnknown(data['task_id']!, _taskIdMeta),
       );
     }
-    if (data.containsKey('start')) {
+    if (data.containsKey('date')) {
       context.handle(
-        _startMeta,
-        start.isAcceptableOrUnknown(data['start']!, _startMeta),
+        _dateMeta,
+        date.isAcceptableOrUnknown(data['date']!, _dateMeta),
       );
     } else if (isInserting) {
-      context.missing(_startMeta);
+      context.missing(_dateMeta);
     }
-    if (data.containsKey('end')) {
+    if (data.containsKey('minutes')) {
       context.handle(
-        _endMeta,
-        end.isAcceptableOrUnknown(data['end']!, _endMeta),
+        _minutesMeta,
+        minutes.isAcceptableOrUnknown(data['minutes']!, _minutesMeta),
       );
     } else if (isInserting) {
-      context.missing(_endMeta);
+      context.missing(_minutesMeta);
     }
     if (data.containsKey('notes')) {
       context.handle(
@@ -882,13 +895,13 @@ class $TimeEntriesTable extends TimeEntries
         DriftSqlType.int,
         data['${effectivePrefix}task_id'],
       ),
-      start: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}start'],
+      date: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}date'],
       )!,
-      end: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}end'],
+      minutes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}minutes'],
       )!,
       notes: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
@@ -907,15 +920,15 @@ class TimeEntry extends DataClass implements Insertable<TimeEntry> {
   final int id;
   final int? tagId;
   final int? taskId;
-  final DateTime start;
-  final DateTime end;
+  final String date;
+  final int minutes;
   final String? notes;
   const TimeEntry({
     required this.id,
     this.tagId,
     this.taskId,
-    required this.start,
-    required this.end,
+    required this.date,
+    required this.minutes,
     this.notes,
   });
   @override
@@ -928,8 +941,8 @@ class TimeEntry extends DataClass implements Insertable<TimeEntry> {
     if (!nullToAbsent || taskId != null) {
       map['task_id'] = Variable<int>(taskId);
     }
-    map['start'] = Variable<DateTime>(start);
-    map['end'] = Variable<DateTime>(end);
+    map['date'] = Variable<String>(date);
+    map['minutes'] = Variable<int>(minutes);
     if (!nullToAbsent || notes != null) {
       map['notes'] = Variable<String>(notes);
     }
@@ -945,8 +958,8 @@ class TimeEntry extends DataClass implements Insertable<TimeEntry> {
       taskId: taskId == null && nullToAbsent
           ? const Value.absent()
           : Value(taskId),
-      start: Value(start),
-      end: Value(end),
+      date: Value(date),
+      minutes: Value(minutes),
       notes: notes == null && nullToAbsent
           ? const Value.absent()
           : Value(notes),
@@ -962,8 +975,8 @@ class TimeEntry extends DataClass implements Insertable<TimeEntry> {
       id: serializer.fromJson<int>(json['id']),
       tagId: serializer.fromJson<int?>(json['tagId']),
       taskId: serializer.fromJson<int?>(json['taskId']),
-      start: serializer.fromJson<DateTime>(json['start']),
-      end: serializer.fromJson<DateTime>(json['end']),
+      date: serializer.fromJson<String>(json['date']),
+      minutes: serializer.fromJson<int>(json['minutes']),
       notes: serializer.fromJson<String?>(json['notes']),
     );
   }
@@ -974,8 +987,8 @@ class TimeEntry extends DataClass implements Insertable<TimeEntry> {
       'id': serializer.toJson<int>(id),
       'tagId': serializer.toJson<int?>(tagId),
       'taskId': serializer.toJson<int?>(taskId),
-      'start': serializer.toJson<DateTime>(start),
-      'end': serializer.toJson<DateTime>(end),
+      'date': serializer.toJson<String>(date),
+      'minutes': serializer.toJson<int>(minutes),
       'notes': serializer.toJson<String?>(notes),
     };
   }
@@ -984,15 +997,15 @@ class TimeEntry extends DataClass implements Insertable<TimeEntry> {
     int? id,
     Value<int?> tagId = const Value.absent(),
     Value<int?> taskId = const Value.absent(),
-    DateTime? start,
-    DateTime? end,
+    String? date,
+    int? minutes,
     Value<String?> notes = const Value.absent(),
   }) => TimeEntry(
     id: id ?? this.id,
     tagId: tagId.present ? tagId.value : this.tagId,
     taskId: taskId.present ? taskId.value : this.taskId,
-    start: start ?? this.start,
-    end: end ?? this.end,
+    date: date ?? this.date,
+    minutes: minutes ?? this.minutes,
     notes: notes.present ? notes.value : this.notes,
   );
   TimeEntry copyWithCompanion(TimeEntriesCompanion data) {
@@ -1000,8 +1013,8 @@ class TimeEntry extends DataClass implements Insertable<TimeEntry> {
       id: data.id.present ? data.id.value : this.id,
       tagId: data.tagId.present ? data.tagId.value : this.tagId,
       taskId: data.taskId.present ? data.taskId.value : this.taskId,
-      start: data.start.present ? data.start.value : this.start,
-      end: data.end.present ? data.end.value : this.end,
+      date: data.date.present ? data.date.value : this.date,
+      minutes: data.minutes.present ? data.minutes.value : this.minutes,
       notes: data.notes.present ? data.notes.value : this.notes,
     );
   }
@@ -1012,15 +1025,15 @@ class TimeEntry extends DataClass implements Insertable<TimeEntry> {
           ..write('id: $id, ')
           ..write('tagId: $tagId, ')
           ..write('taskId: $taskId, ')
-          ..write('start: $start, ')
-          ..write('end: $end, ')
+          ..write('date: $date, ')
+          ..write('minutes: $minutes, ')
           ..write('notes: $notes')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, tagId, taskId, start, end, notes);
+  int get hashCode => Object.hash(id, tagId, taskId, date, minutes, notes);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1028,8 +1041,8 @@ class TimeEntry extends DataClass implements Insertable<TimeEntry> {
           other.id == this.id &&
           other.tagId == this.tagId &&
           other.taskId == this.taskId &&
-          other.start == this.start &&
-          other.end == this.end &&
+          other.date == this.date &&
+          other.minutes == this.minutes &&
           other.notes == this.notes);
 }
 
@@ -1037,40 +1050,40 @@ class TimeEntriesCompanion extends UpdateCompanion<TimeEntry> {
   final Value<int> id;
   final Value<int?> tagId;
   final Value<int?> taskId;
-  final Value<DateTime> start;
-  final Value<DateTime> end;
+  final Value<String> date;
+  final Value<int> minutes;
   final Value<String?> notes;
   const TimeEntriesCompanion({
     this.id = const Value.absent(),
     this.tagId = const Value.absent(),
     this.taskId = const Value.absent(),
-    this.start = const Value.absent(),
-    this.end = const Value.absent(),
+    this.date = const Value.absent(),
+    this.minutes = const Value.absent(),
     this.notes = const Value.absent(),
   });
   TimeEntriesCompanion.insert({
     this.id = const Value.absent(),
     this.tagId = const Value.absent(),
     this.taskId = const Value.absent(),
-    required DateTime start,
-    required DateTime end,
+    required String date,
+    required int minutes,
     this.notes = const Value.absent(),
-  }) : start = Value(start),
-       end = Value(end);
+  }) : date = Value(date),
+       minutes = Value(minutes);
   static Insertable<TimeEntry> custom({
     Expression<int>? id,
     Expression<int>? tagId,
     Expression<int>? taskId,
-    Expression<DateTime>? start,
-    Expression<DateTime>? end,
+    Expression<String>? date,
+    Expression<int>? minutes,
     Expression<String>? notes,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (tagId != null) 'tag_id': tagId,
       if (taskId != null) 'task_id': taskId,
-      if (start != null) 'start': start,
-      if (end != null) 'end': end,
+      if (date != null) 'date': date,
+      if (minutes != null) 'minutes': minutes,
       if (notes != null) 'notes': notes,
     });
   }
@@ -1079,16 +1092,16 @@ class TimeEntriesCompanion extends UpdateCompanion<TimeEntry> {
     Value<int>? id,
     Value<int?>? tagId,
     Value<int?>? taskId,
-    Value<DateTime>? start,
-    Value<DateTime>? end,
+    Value<String>? date,
+    Value<int>? minutes,
     Value<String?>? notes,
   }) {
     return TimeEntriesCompanion(
       id: id ?? this.id,
       tagId: tagId ?? this.tagId,
       taskId: taskId ?? this.taskId,
-      start: start ?? this.start,
-      end: end ?? this.end,
+      date: date ?? this.date,
+      minutes: minutes ?? this.minutes,
       notes: notes ?? this.notes,
     );
   }
@@ -1105,11 +1118,11 @@ class TimeEntriesCompanion extends UpdateCompanion<TimeEntry> {
     if (taskId.present) {
       map['task_id'] = Variable<int>(taskId.value);
     }
-    if (start.present) {
-      map['start'] = Variable<DateTime>(start.value);
+    if (date.present) {
+      map['date'] = Variable<String>(date.value);
     }
-    if (end.present) {
-      map['end'] = Variable<DateTime>(end.value);
+    if (minutes.present) {
+      map['minutes'] = Variable<int>(minutes.value);
     }
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
@@ -1123,8 +1136,8 @@ class TimeEntriesCompanion extends UpdateCompanion<TimeEntry> {
           ..write('id: $id, ')
           ..write('tagId: $tagId, ')
           ..write('taskId: $taskId, ')
-          ..write('start: $start, ')
-          ..write('end: $end, ')
+          ..write('date: $date, ')
+          ..write('minutes: $minutes, ')
           ..write('notes: $notes')
           ..write(')'))
         .toString();
@@ -2068,8 +2081,8 @@ typedef $$TimeEntriesTableCreateCompanionBuilder =
       Value<int> id,
       Value<int?> tagId,
       Value<int?> taskId,
-      required DateTime start,
-      required DateTime end,
+      required String date,
+      required int minutes,
       Value<String?> notes,
     });
 typedef $$TimeEntriesTableUpdateCompanionBuilder =
@@ -2077,8 +2090,8 @@ typedef $$TimeEntriesTableUpdateCompanionBuilder =
       Value<int> id,
       Value<int?> tagId,
       Value<int?> taskId,
-      Value<DateTime> start,
-      Value<DateTime> end,
+      Value<String> date,
+      Value<int> minutes,
       Value<String?> notes,
     });
 
@@ -2135,13 +2148,13 @@ class $$TimeEntriesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<DateTime> get start => $composableBuilder(
-    column: $table.start,
+  ColumnFilters<String> get date => $composableBuilder(
+    column: $table.date,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<DateTime> get end => $composableBuilder(
-    column: $table.end,
+  ColumnFilters<int> get minutes => $composableBuilder(
+    column: $table.minutes,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2211,13 +2224,13 @@ class $$TimeEntriesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<DateTime> get start => $composableBuilder(
-    column: $table.start,
+  ColumnOrderings<String> get date => $composableBuilder(
+    column: $table.date,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<DateTime> get end => $composableBuilder(
-    column: $table.end,
+  ColumnOrderings<int> get minutes => $composableBuilder(
+    column: $table.minutes,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -2285,11 +2298,11 @@ class $$TimeEntriesTableAnnotationComposer
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
-  GeneratedColumn<DateTime> get start =>
-      $composableBuilder(column: $table.start, builder: (column) => column);
+  GeneratedColumn<String> get date =>
+      $composableBuilder(column: $table.date, builder: (column) => column);
 
-  GeneratedColumn<DateTime> get end =>
-      $composableBuilder(column: $table.end, builder: (column) => column);
+  GeneratedColumn<int> get minutes =>
+      $composableBuilder(column: $table.minutes, builder: (column) => column);
 
   GeneratedColumn<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => column);
@@ -2374,15 +2387,15 @@ class $$TimeEntriesTableTableManager
                 Value<int> id = const Value.absent(),
                 Value<int?> tagId = const Value.absent(),
                 Value<int?> taskId = const Value.absent(),
-                Value<DateTime> start = const Value.absent(),
-                Value<DateTime> end = const Value.absent(),
+                Value<String> date = const Value.absent(),
+                Value<int> minutes = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
               }) => TimeEntriesCompanion(
                 id: id,
                 tagId: tagId,
                 taskId: taskId,
-                start: start,
-                end: end,
+                date: date,
+                minutes: minutes,
                 notes: notes,
               ),
           createCompanionCallback:
@@ -2390,15 +2403,15 @@ class $$TimeEntriesTableTableManager
                 Value<int> id = const Value.absent(),
                 Value<int?> tagId = const Value.absent(),
                 Value<int?> taskId = const Value.absent(),
-                required DateTime start,
-                required DateTime end,
+                required String date,
+                required int minutes,
                 Value<String?> notes = const Value.absent(),
               }) => TimeEntriesCompanion.insert(
                 id: id,
                 tagId: tagId,
                 taskId: taskId,
-                start: start,
-                end: end,
+                date: date,
+                minutes: minutes,
                 notes: notes,
               ),
           withReferenceMapper: (p0) => p0

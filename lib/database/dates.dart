@@ -20,7 +20,20 @@ List<String> weekKeys(DateTime date) {
   return List.generate(7, (i) => dateKey(monday.add(Duration(days: i))));
 }
 
+/// All day-keys of the month containing [date].
+List<String> monthKeys(DateTime date) {
+  final daysInMonth = DateTime(date.year, date.month + 1, 0).day;
+  return List.generate(
+    daysInMonth,
+    (i) => dateKey(DateTime(date.year, date.month, i + 1)),
+  );
+}
+
 Duration entryDuration(DateTime start, DateTime end) => end.difference(start);
+
+/// Total duration of a set of minute-based entries.
+Duration totalMinutes(Iterable<int> minutes) =>
+    Duration(minutes: minutes.fold(0, (int sum, int m) => sum + m));
 
 String formatDuration(Duration d) {
   final h = d.inHours;

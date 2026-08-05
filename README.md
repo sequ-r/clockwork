@@ -2,15 +2,19 @@
 
 Daily task management and project time tracking, built with Flutter.
 
-- **Overview screen**: task list for the selected day + a week calendar view
-  with per-day tracked time.
-- **Manual time tracking** via the "Track time" button (tag, optional task,
-  date, start/end).
-- **Tag system** for projects and subprojects (parent tags), with color
-  coding and filtering.
+- **Left pane**: a welcome message, your tasks for the selected day with the
+  hours spent on each, and the time entries you logged.
+- **Right pane**: a calendar overview of your tasks and tracked time, with a
+  **week / month toggle**.
+- **Quick logging**: press the **+** button, choose how many hours to add,
+  attach an optional comment or tag, and confirm.
+- **Working-hours warning**: days over 8 hours get a warning indicator next
+  to the total.
+- **Projects**: tag system for projects and subprojects, with color coding
+  and filtering.
 - **SQLite database** (drift) shared between the GUI and the CLI.
-- **System tray** (desktop only): quick-add tracked time per tag from the
-  tray menu; closing the window hides the app to the tray.
+- **System tray** (desktop only): "Add time..." opens a minimal hours + plus
+  widget; closing/minimizing hides the app to the tray.
 
 Platforms: Linux desktop and Android.
 
@@ -34,19 +38,24 @@ On desktop, GUI and CLI share the same database at
 ### CLI usage
 
 ```sh
-clockwork tag add Project [--parent P] [--color RRGGBB]
-clockwork tag list | clockwork tag rm NAME_OR_ID
+clockwork add +2 --project p-name --day today
+clockwork add 90m --project p-name -c "code review"
+clockwork add 1h30m --project other --day yesterday
 
-clockwork task add "Title" [--tag T] [--date YYYY-MM-DD]
-clockwork task list [--date YYYY-MM-DD]
+clockwork list [--day D]            # time entries for a day
+clockwork today                     # today's tasks + tracked time
+clockwork week                      # week summary by day and project
+
+clockwork task add "Title" [--project P] [--day D]
+clockwork task list [--day D]
 clockwork task done ID | clockwork task rm ID
 
-clockwork time add 1h30m --tag Project [--notes "..."]
-clockwork time add --tag Project --start 09:00 --end 11:15 [--date D]
-
-clockwork today        # today's tasks + tracked time
-clockwork week         # week summary by day and tag
+clockwork project add Name [--parent P] [--color RRGGBB]
+clockwork project list | clockwork project rm NAME_OR_ID
 ```
+
+Duration formats: `+2`, `2`, `1.5h`, `90m`, `1h30m`. A bare number is hours.
+Day formats: `today`, `yesterday`, `YYYY-MM-DD`.
 
 ## Development
 

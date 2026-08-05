@@ -6,16 +6,15 @@ import '../database/database.dart';
 import '../database/dates.dart';
 import '../providers/providers.dart';
 
+/// Week overview: one column per day with tasks and tracked time.
 class WeekView extends ConsumerWidget {
   const WeekView({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final anchor = ref.watch(weekAnchorProvider);
-    final monday = startOfWeek(anchor);
-    final sunday = monday.add(const Duration(days: 6));
-    final tasks = ref.watch(weekTasksProvider).valueOrNull ?? [];
-    final entries = ref.watch(weekEntriesProvider).valueOrNull ?? [];
+    final monday = startOfWeek(ref.watch(calendarAnchorProvider));
+    final tasks = ref.watch(visibleTasksProvider).valueOrNull ?? [];
+    final entries = ref.watch(visibleEntriesProvider).valueOrNull ?? [];
     final dailyTotals = ref.watch(dailyTotalsProvider);
     final tags = ref.watch(tagsProvider).valueOrNull ?? [];
     final tagById = {for (final t in tags) t.id: t};
@@ -23,87 +22,36 @@ class WeekView extends ConsumerWidget {
     final todayKey = dateKey(DateTime.now());
     final selectedKey = dateKey(ref.watch(selectedDateProvider));
 
-    return Column(
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          child: Row(
-            children: [
-              IconButton(
-                tooltip: 'Previous week',
-                icon: const Icon(Icons.chevron_left),
-                onPressed: () {
-                  final notifier = ref.read(weekAnchorProvider.notifier);
-                  notifier.state =
-                      notifier.state.subtract(const Duration(days: 7));
-                },
+        for (var i = 0; i < 7; i++)
+          Builder(builder: (context) {
+            final day = monday.add(Duration(days: i));
+            final key = dateKey(day);
+            final dayTasks = tasks
+                .where((t) =>
+                    t.date == key && (filter == null || t.tagId == filter))
+                .toList();
+            final dayEntries = entries
+                .where((e) =>
+                    e.date == key && (filter == null || e.tagId == filter))
+                .toList()
+              ..sort((a, b) => a.id.compareTo(b.id));
+            return Expanded(
+              child: _DayColumn(
+                date: day,
+                isSelected: key == selectedKey,
+                isToday: key == todayKey,
+                tasks: dayTasks,
+                entries: dayEntries,
+                total: dailyTotals[key] ?? Duration.zero,
+                tagById: tagById,
+                onTap: () =>
+                    ref.read(selectedDateProvider.notifier).state = day,
               ),
-              Expanded(
-                child: Text(
-                  '${DateFormat.MMMd().format(monday)} - '
-                  '${DateFormat.MMMd().format(sunday)}',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-              ),
-              IconButton(
-                tooltip: 'Today',
-                icon: const Icon(Icons.today),
-                onPressed: () {
-                  final now = DateTime.now();
-                  final day = DateTime(now.year, now.month, now.day);
-                  ref.read(weekAnchorProvider.notifier).state = day;
-                  ref.read(selectedDateProvider.notifier).state = day;
-                },
-              ),
-              IconButton(
-                tooltip: 'Next week',
-                icon: const Icon(Icons.chevron_right),
-                onPressed: () {
-                  final notifier = ref.read(weekAnchorProvider.notifier);
-                  notifier.state = notifier.state.add(const Duration(days: 7));
-                },
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              for (var i = 0; i < 7; i++)
-                Builder(builder: (context) {
-                  final day = monday.add(Duration(days: i));
-                  final key = dateKey(day);
-                  final dayTasks = tasks
-                      .where((t) =>
-                          t.date == key &&
-                          (filter == null || t.tagId == filter))
-                      .toList();
-                  final dayEntries = entries
-                      .where((e) =>
-                          dateKey(e.start) == key &&
-                          (filter == null || e.tagId == filter))
-                      .toList()
-                    ..sort((a, b) => a.start.compareTo(b.start));
-                  return Expanded(
-                    child: _DayColumn(
-                      date: day,
-                      isSelected: key == selectedKey,
-                      isToday: key == todayKey,
-                      tasks: dayTasks,
-                      entries: dayEntries,
-                      total: dailyTotals[key] ?? Duration.zero,
-                      tagById: tagById,
-                      onTap: () =>
-                          ref.read(selectedDateProvider.notifier).state = day,
-                    ),
-                  );
-                }),
-            ],
-          ),
-        ),
+            );
+          }),
       ],
     );
   }
@@ -165,10 +113,33 @@ class _DayColumn extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    total == Duration.zero ? '-' : formatDuration(total),
-                    style: theme.textTheme.labelLarge
-                        ?.copyWith(color: colorScheme.primary),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          total == Duration.zero
+                              ? '-'
+                              : formatDuration(total),
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            color: colorScheme.primary,
+                          ),
+                        ),
+                        if (isOverLimit(total)) ...[
+                          const SizedBox(width: 4),
+                          Tooltip(
+                            message: 'Over the '
+                                '${workingHoursLimit.inHours}h working limit',
+                            child: Icon(
+                              Icons.warning_amber_rounded,
+                              size: 16,
+                              color: colorScheme.error,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -214,8 +185,8 @@ class _DayColumn extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 6, vertical: 3),
                       decoration: BoxDecoration(
-                        color: colorScheme.surfaceContainerHighest
-                            .withAlpha(120),
+                        color:
+                            colorScheme.surfaceContainerHighest.withAlpha(120),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Row(
@@ -230,9 +201,8 @@ class _DayColumn extends StatelessWidget {
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
-                              '${DateFormat.Hm().format(entry.start)}-'
-                              '${DateFormat.Hm().format(entry.end)} '
-                              '(${formatDuration(entryDuration(entry.start, entry.end))})',
+                              '${formatDuration(Duration(minutes: entry.minutes))}'
+                              '${entry.notes != null ? ' - ${entry.notes}' : ''}',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: theme.textTheme.bodySmall,
