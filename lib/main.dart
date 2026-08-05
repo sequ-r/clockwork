@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:window_manager/window_manager.dart';
 
 import 'screens/home_screen.dart';
+import 'services/tray_service.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  if (TrayService.isSupported) {
+    await windowManager.ensureInitialized();
+    await windowManager.setPreventClose(true);
+  }
   runApp(const ProviderScope(child: ClockworkApp()));
 }
 

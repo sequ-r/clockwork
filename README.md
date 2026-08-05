@@ -9,6 +9,8 @@ Daily task management and project time tracking, built with Flutter.
 - **Tag system** for projects and subprojects (parent tags), with color
   coding and filtering.
 - **SQLite database** (drift) shared between the GUI and the CLI.
+- **System tray** (desktop only): quick-add tracked time per tag from the
+  tray menu; closing the window hides the app to the tray.
 
 Platforms: Linux desktop and Android.
 

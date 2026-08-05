@@ -1,19 +1,55 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:window_manager/window_manager.dart';
 
 import '../database/dates.dart';
 import '../providers/providers.dart';
+import '../services/tray_service.dart';
 import '../widgets/add_time_dialog.dart';
 import '../widgets/tag_filter_bar.dart';
 import '../widgets/tag_manager_dialog.dart';
 import '../widgets/task_panel.dart';
 import '../widgets/week_view.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
+  @override
+  void initState() {
+    super.initState();
+    if (TrayService.isSupported) {
+      windowManager.addListener(this);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(trayServiceProvider).init();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    if (TrayService.isSupported) {
+      windowManager.removeListener(this);
+    }
+    super.dispose();
+  }
+
+  @override
+  void onWindowClose() {
+    windowManager.hide();
+  }
+
+  @override
+  void onWindowMinimize() {
+    windowManager.hide();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final weekTotal = ref.watch(weekTotalProvider);
 
     return Scaffold(
