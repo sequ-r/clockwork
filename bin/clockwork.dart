@@ -57,11 +57,16 @@ Future<Tag> findOrCreateTag(ClockworkDatabase db, String name) async {
 class AddCommand extends Command {
   AddCommand(this.db) {
     argParser
-      ..addOption('project',
-          abbr: 'p', help: 'Project name or id (created if missing)')
-      ..addOption('day',
-          abbr: 'd',
-          help: 'today, yesterday or YYYY-MM-DD (default: today)')
+      ..addOption(
+        'project',
+        abbr: 'p',
+        help: 'Project name or id (created if missing)',
+      )
+      ..addOption(
+        'day',
+        abbr: 'd',
+        help: 'today, yesterday or YYYY-MM-DD (default: today)',
+      )
       ..addOption('comment', abbr: 'c', help: 'Optional comment')
       ..addOption('task', help: 'Optional task id to link');
   }
@@ -87,15 +92,18 @@ class AddCommand extends Command {
     final minutes = parseDurationMinutes(rest.first);
     if (minutes == null) {
       throw UsageException(
-          'Invalid duration "${rest.first}", e.g. +2, 90m or 1h30m', usage);
+        'Invalid duration "${rest.first}", e.g. +2, 90m or 1h30m',
+        usage,
+      );
     }
 
     final day = parseDayOption(argResults!['day'] as String?);
     if (day == null) {
       throw UsageException(
-          'Invalid day "${argResults!['day']}", use today, yesterday '
-          'or YYYY-MM-DD',
-          usage);
+        'Invalid day "${argResults!['day']}", use today, yesterday '
+        'or YYYY-MM-DD',
+        usage,
+      );
     }
 
     int? tagId;
@@ -130,8 +138,11 @@ class AddCommand extends Command {
 
 class ListCommand extends Command {
   ListCommand(this.db) {
-    argParser.addOption('day',
-        abbr: 'd', help: 'today, yesterday or YYYY-MM-DD');
+    argParser.addOption(
+      'day',
+      abbr: 'd',
+      help: 'today, yesterday or YYYY-MM-DD',
+    );
   }
 
   final ClockworkDatabase db;
@@ -156,8 +167,9 @@ class ListCommand extends Command {
     final tags = {for (final tag in await db.tagDao.getAll()) tag.id: tag};
     var total = Duration.zero;
     for (final entry in entries) {
-      final project =
-          entry.tagId == null ? '' : '  #${tags[entry.tagId]?.name}';
+      final project = entry.tagId == null
+          ? ''
+          : '  #${tags[entry.tagId]?.name}';
       final comment = entry.notes == null ? '' : '  ${entry.notes}';
       final duration = Duration(minutes: entry.minutes);
       total += duration;
@@ -191,8 +203,7 @@ class TaskAddCommand extends Command {
   TaskAddCommand(this.db) {
     argParser
       ..addOption('project', abbr: 'p', help: 'Project name or id')
-      ..addOption('day',
-          abbr: 'd', help: 'today, yesterday or YYYY-MM-DD');
+      ..addOption('day', abbr: 'd', help: 'today, yesterday or YYYY-MM-DD');
   }
 
   final ClockworkDatabase db;
@@ -236,8 +247,11 @@ class TaskAddCommand extends Command {
 
 class TaskListCommand extends Command {
   TaskListCommand(this.db) {
-    argParser.addOption('day',
-        abbr: 'd', help: 'today, yesterday or YYYY-MM-DD');
+    argParser.addOption(
+      'day',
+      abbr: 'd',
+      help: 'today, yesterday or YYYY-MM-DD',
+    );
   }
 
   final ClockworkDatabase db;
@@ -262,8 +276,7 @@ class TaskListCommand extends Command {
     final tags = {for (final tag in await db.tagDao.getAll()) tag.id: tag};
     for (final task in tasks) {
       final mark = task.done ? '[x]' : '[ ]';
-      final project =
-          task.tagId == null ? '' : '  #${tags[task.tagId]?.name}';
+      final project = task.tagId == null ? '' : '  #${tags[task.tagId]?.name}';
       print('${task.id.toString().padLeft(3)}  $mark ${task.title}$project');
     }
   }
@@ -368,11 +381,7 @@ class ProjectAddCommand extends Command {
         ? 0xFF64B5F6
         : int.parse(colorHex, radix: 16) | 0xFF000000;
     final id = await db.tagDao.createTag(
-      TagsCompanion.insert(
-        name: name,
-        color: color,
-        parentId: Value(parentId),
-      ),
+      TagsCompanion.insert(name: name, color: color, parentId: Value(parentId)),
     );
     print('Added project #$id "$name"');
   }
@@ -461,8 +470,9 @@ class TodayCommand extends Command {
     print('== Time ==');
     if (entries.isEmpty) print('  (none)');
     for (final entry in entries) {
-      final project =
-          entry.tagId == null ? '' : '  #${tags[entry.tagId]?.name}';
+      final project = entry.tagId == null
+          ? ''
+          : '  #${tags[entry.tagId]?.name}';
       final duration = Duration(minutes: entry.minutes);
       total += duration;
       print('  ${formatDuration(duration)}$project');
@@ -516,8 +526,10 @@ class WeekCommand extends Command {
     }
     print('');
     for (final tagId in perTag.keys) {
-      print('  #${tags[tagId]?.name ?? tagId}: '
-          '${formatDuration(perTag[tagId]!)}');
+      print(
+        '  #${tags[tagId]?.name ?? tagId}: '
+        '${formatDuration(perTag[tagId]!)}',
+      );
     }
     print('Total: ${formatDuration(total)}');
   }
@@ -525,17 +537,18 @@ class WeekCommand extends Command {
 
 Future<void> main(List<String> arguments) async {
   final db = openCliDatabase();
-  final runner = CommandRunner<void>(
-    'clockwork',
-    'Track tasks and worked time from the terminal.\n'
-    'Data is stored in ${databaseFile().path}',
-  )
-    ..addCommand(AddCommand(db))
-    ..addCommand(ListCommand(db))
-    ..addCommand(TaskCommand(db))
-    ..addCommand(ProjectCommand(db))
-    ..addCommand(TodayCommand(db))
-    ..addCommand(WeekCommand(db));
+  final runner =
+      CommandRunner<void>(
+          'clockwork',
+          'Track tasks and worked time from the terminal.\n'
+              'Data is stored in ${databaseFile().path}',
+        )
+        ..addCommand(AddCommand(db))
+        ..addCommand(ListCommand(db))
+        ..addCommand(TaskCommand(db))
+        ..addCommand(ProjectCommand(db))
+        ..addCommand(TodayCommand(db))
+        ..addCommand(WeekCommand(db));
 
   try {
     await runner.run(arguments);
