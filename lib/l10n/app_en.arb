@@ -1,0 +1,44 @@
+{
+  "@@locale": "en",
+  "appTitle": "Clockwork",
+  "@appTitle": {
+    "description": "Application title shown in the title bar"
+  },
+  "todayGreetingMorning": "Good morning",
+  "@todayGreetingMorning": {
+    "description": "Greeting shown before noon on the Today pane"
+  },
+  "todayGreetingAfternoon": "Good afternoon",
+  "@todayGreetingAfternoon": {
+    "description": "Greeting shown between noon and 6pm on the Today pane"
+  },
+  "todayGreetingEvening": "Good evening",
+  "@todayGreetingEvening": {
+    "description": "Greeting shown after 6pm on the Today pane"
+  },
+  "todayAddTaskPlaceholder": "Add a task...",
+  "@todayAddTaskPlaceholder": {
+    "description": "Hint shown inside the quick-add task input"
+  },
+  "todayNoTasks": "No tasks for this day",
+  "@todayNoTasks": {
+    "description": "Empty-state message on the Today pane"
+  },
+  "todayLoggedTimeHeader": "Logged time",
+  "@todayLoggedTimeHeader": {
+    "description": "Heading above the list of time entries for the selected day"
+  },
+  "addTimeButton": "Add time",
+  "@addTimeButton": {
+    "description": "FAB label that opens the Add Time dialog"
+  },
+  "overLimitTooltip": "Over the {hours}h working limit",
+  "@overLimitTooltip": {
+    "description": "Tooltip shown on the warning icon when a day exceeds the limit",
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  }
+}

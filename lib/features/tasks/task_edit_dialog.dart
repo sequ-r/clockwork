@@ -2,9 +2,9 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../database/database.dart';
-import '../database/dates.dart';
-import '../providers/providers.dart';
+import '../../database/database.dart';
+import '../../database/dates.dart';
+import '../../providers/providers.dart';
 
 class TaskEditDialog extends ConsumerStatefulWidget {
   const TaskEditDialog({super.key, required this.task});
@@ -50,7 +50,9 @@ class _TaskEditDialogState extends ConsumerState<TaskEditDialog> {
   Future<void> _save() async {
     final title = _titleController.text.trim();
     if (title.isEmpty) return;
-    await ref.read(taskDaoProvider).updateTask(
+    await ref
+        .read(taskDaoProvider)
+        .updateTask(
           widget.task.copyWith(
             title: title,
             date: _dateKey,
@@ -117,10 +119,7 @@ class _TaskEditDialogState extends ConsumerState<TaskEditDialog> {
         ),
       ),
       actions: [
-        TextButton(
-          onPressed: _delete,
-          child: const Text('Delete'),
-        ),
+        TextButton(onPressed: _delete, child: const Text('Delete')),
         TextButton(
           onPressed: () => Navigator.pop(context),
           child: const Text('Cancel'),

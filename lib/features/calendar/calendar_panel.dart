@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import '../database/dates.dart';
-import '../providers/providers.dart';
-import 'month_view.dart';
-import 'week_view.dart';
+import '../../database/dates.dart';
+import '../../providers/providers.dart';
+import 'widgets/month_view.dart';
+import 'widgets/week_view.dart';
 
 /// Right pane: weekly/monthly overview of tasks and tracked time.
 class CalendarPanel extends ConsumerWidget {
@@ -18,10 +18,10 @@ class CalendarPanel extends ConsumerWidget {
 
     final rangeLabel = switch (view) {
       CalendarView.week => () {
-          final monday = startOfWeek(anchor);
-          return '${DateFormat.MMMd().format(monday)} - '
-              '${DateFormat.MMMd().format(monday.add(const Duration(days: 6)))}';
-        }(),
+        final monday = startOfWeek(anchor);
+        return '${DateFormat.MMMd().format(monday)} - '
+            '${DateFormat.MMMd().format(monday.add(const Duration(days: 6)))}';
+      }(),
       CalendarView.month => DateFormat.yMMMM().format(anchor),
     };
 
@@ -34,19 +34,16 @@ class CalendarPanel extends ConsumerWidget {
             children: [
               SegmentedButton<CalendarView>(
                 segments: const [
-                  ButtonSegment(
-                    value: CalendarView.week,
-                    label: Text('Week'),
-                  ),
+                  ButtonSegment(value: CalendarView.week, label: Text('Week')),
                   ButtonSegment(
                     value: CalendarView.month,
                     label: Text('Month'),
                   ),
                 ],
                 selected: {view},
-                onSelectionChanged: (selection) => ref
-                    .read(calendarViewProvider.notifier)
-                    .state = selection.first,
+                onSelectionChanged: (selection) =>
+                    ref.read(calendarViewProvider.notifier).state =
+                        selection.first,
               ),
               IconButton(
                 tooltip: 'Previous',
@@ -97,10 +94,12 @@ class CalendarPanel extends ConsumerWidget {
     required bool forward,
   }) {
     final target = switch (view) {
-      CalendarView.week =>
-        anchor.add(Duration(days: forward ? 7 : -7)),
-      CalendarView.month =>
-        DateTime(anchor.year, anchor.month + (forward ? 1 : -1), 1),
+      CalendarView.week => anchor.add(Duration(days: forward ? 7 : -7)),
+      CalendarView.month => DateTime(
+        anchor.year,
+        anchor.month + (forward ? 1 : -1),
+        1,
+      ),
     };
     ref.read(calendarAnchorProvider.notifier).state = target;
   }

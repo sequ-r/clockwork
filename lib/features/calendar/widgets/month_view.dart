@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../database/dates.dart';
-import '../providers/providers.dart';
+import '../../../app/theme.dart';
+import '../../../database/dates.dart';
+import '../../../providers/providers.dart';
 
 /// Month overview: calendar grid with per-day totals and task counts.
 class MonthView extends ConsumerWidget {
@@ -13,6 +14,7 @@ class MonthView extends ConsumerWidget {
     final anchor = ref.watch(calendarAnchorProvider);
     final firstOfMonth = DateTime(anchor.year, anchor.month, 1);
     final daysInMonth = DateTime(anchor.year, anchor.month + 1, 0).day;
+    // Monday-first week: how many blanks to insert before day 1?
     final leadingBlanks = firstOfMonth.weekday - DateTime.monday;
     final tasks = ref.watch(visibleTasksProvider).valueOrNull ?? [];
     final dailyTotals = ref.watch(dailyTotalsProvider);
@@ -26,33 +28,38 @@ class MonthView extends ConsumerWidget {
       taskCounts[task.date] = (taskCounts[task.date] ?? 0) + 1;
     }
 
+    // Build a flat list of cells, then chunk it into rows of 7. This
+    // replaces the previous hand-rolled `Expanded` math which broke when
+    // the leading blank count didn't divide evenly.
     final cells = <Widget>[
       for (var i = 0; i < leadingBlanks; i++) const _EmptyCell(),
       for (var day = 1; day <= daysInMonth; day++)
-        Builder(builder: (context) {
-          final date = DateTime(anchor.year, anchor.month, day);
-          final key = dateKey(date);
-          return _DayCell(
-            date: date,
-            total: dailyTotals[key] ?? Duration.zero,
-            taskCount: taskCounts[key] ?? 0,
-            isToday: key == todayKey,
-            isSelected: key == selectedKey,
-            onTap: () {
-              ref.read(selectedDateProvider.notifier).state = date;
-            },
-          );
-        }),
+        Builder(
+          builder: (context) {
+            final date = DateTime(anchor.year, anchor.month, day);
+            final key = dateKey(date);
+            return _DayCell(
+              date: date,
+              total: dailyTotals[key] ?? Duration.zero,
+              taskCount: taskCounts[key] ?? 0,
+              isToday: key == todayKey,
+              isSelected: key == selectedKey,
+              onTap: () {
+                ref.read(selectedDateProvider.notifier).state = date;
+              },
+            );
+          },
+        ),
     ];
-    final rowCount = ((leadingBlanks + daysInMonth) / 7).ceil();
-    while (cells.length < rowCount * 7) {
+    // Pad the last row so the grid is always a rectangle.
+    while (cells.length % 7 != 0) {
       cells.add(const _EmptyCell());
     }
 
     const weekdaySymbols = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
     return Padding(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(kSpacingSm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -69,20 +76,13 @@ class MonthView extends ConsumerWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: kSpacingXs),
           Expanded(
-            child: Column(
-              children: [
-                for (var row = 0; row < rowCount; row++)
-                  Expanded(
-                    child: Row(
-                      children: [
-                        for (var col = 0; col < 7; col++)
-                          Expanded(child: cells[row * 7 + col]),
-                      ],
-                    ),
-                  ),
-              ],
+            child: GridView.count(
+              crossAxisCount: 7,
+              childAspectRatio: 1.0,
+              physics: const NeverScrollableScrollPhysics(),
+              children: cells,
             ),
           ),
         ],
@@ -125,12 +125,12 @@ class _DayCell extends StatelessWidget {
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.all(2),
-        padding: const EdgeInsets.all(6),
+        padding: const EdgeInsets.all(kSpacingXs + 2),
         decoration: BoxDecoration(
           color: isSelected
               ? colorScheme.primaryContainer.withAlpha(80)
               : colorScheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(kRadiusSmall + 2),
           border: Border.all(
             color: isToday ? colorScheme.primary : Colors.transparent,
           ),
@@ -164,15 +164,17 @@ class _DayCell extends StatelessWidget {
                   Text(
                     formatDuration(total),
                     style: theme.textTheme.labelMedium?.copyWith(
-                      color:
-                          overLimit ? colorScheme.error : colorScheme.primary,
+                      color: overLimit
+                          ? colorScheme.error
+                          : colorScheme.primary,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   if (overLimit) ...[
                     const SizedBox(width: 2),
                     Tooltip(
-                      message: 'Over the '
+                      message:
+                          'Over the '
                           '${workingHoursLimit.inHours}h working limit',
                       child: Icon(
                         Icons.warning_amber_rounded,

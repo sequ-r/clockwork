@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import '../database/database.dart';
-import '../database/dates.dart';
-import '../providers/providers.dart';
+import '../../database/database.dart';
+import '../../database/dates.dart';
+import '../../providers/providers.dart';
 
 /// Main "+ button" workflow: choose hours to add to the day, attach an
 /// optional comment and tag, then confirm.
@@ -76,15 +76,19 @@ class _AddTimeDialogState extends ConsumerState<AddTimeDialog> {
   Future<void> _confirm() async {
     final minutes = _minutes;
     if (minutes == null) return;
-    await ref.read(timeEntryDaoProvider).createEntry(
+    await ref
+        .read(timeEntryDaoProvider)
+        .createEntry(
           TimeEntriesCompanion.insert(
             date: dateKey(_date),
             minutes: minutes,
             tagId: Value(_tagId),
             taskId: Value(_taskId),
-            notes: Value(_notesController.text.trim().isEmpty
-                ? null
-                : _notesController.text.trim()),
+            notes: Value(
+              _notesController.text.trim().isEmpty
+                  ? null
+                  : _notesController.text.trim(),
+            ),
           ),
         );
     if (mounted) Navigator.pop(context);
@@ -95,8 +99,9 @@ class _AddTimeDialogState extends ConsumerState<AddTimeDialog> {
     final tags = ref.watch(tagsProvider).valueOrNull ?? [];
     final tasks =
         ref.watch(tasksForDateProvider(dateKey(_date))).valueOrNull ?? [];
-    final eligibleTasks =
-        tasks.where((t) => _tagId == null || t.tagId == _tagId).toList();
+    final eligibleTasks = tasks
+        .where((t) => _tagId == null || t.tagId == _tagId)
+        .toList();
 
     return AlertDialog(
       title: Text('Add time on ${DateFormat.MMMd().format(_date)}'),
@@ -121,7 +126,8 @@ class _AddTimeDialogState extends ConsumerState<AddTimeDialog> {
                   child: TextField(
                     controller: _hoursController,
                     keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true),
+                      decimal: true,
+                    ),
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
                       isDense: true,
@@ -167,8 +173,9 @@ class _AddTimeDialogState extends ConsumerState<AddTimeDialog> {
                     onChanged: (value) => setState(() {
                       _tagId = value;
                       if (_taskId != null) {
-                        final task =
-                            tasks.where((t) => t.id == _taskId).firstOrNull;
+                        final task = tasks
+                            .where((t) => t.id == _taskId)
+                            .firstOrNull;
                         if (task == null ||
                             (value != null && task.tagId != value)) {
                           _taskId = null;
@@ -186,7 +193,9 @@ class _AddTimeDialogState extends ConsumerState<AddTimeDialog> {
                       const DropdownMenuItem(value: null, child: Text('None')),
                       for (final task in eligibleTasks)
                         DropdownMenuItem(
-                            value: task.id, child: Text(task.title)),
+                          value: task.id,
+                          child: Text(task.title),
+                        ),
                     ],
                     onChanged: (value) => setState(() => _taskId = value),
                   ),

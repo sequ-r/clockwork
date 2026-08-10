@@ -64,3 +64,51 @@ dart run build_runner build --delete-conflicting-outputs  # after schema changes
 flutter analyze
 flutter test
 ```
+
+## Project layout
+
+```
+lib/
+  app/             # bootstrap, theming, design tokens (Phase 0/1)
+    app.dart       # ClockworkApp root
+    theme.dart     # Material 3 / libadwaita-flavored ThemeData
+    tokens.dart    # Flutter-free design tokens (used by CLI too)
+
+  core/
+    database/      # drift schema, DAOs, paths, dates (unchanged)
+    providers/     # Riverpod providers, split per concern:
+      database.dart  # DB & DAO providers
+      ui_state.dart  # selected date, filter, calendar view
+      tasks.dart     # task streams & computed views
+      time_entries.dart  # entry streams & aggregates
+
+  features/        # one folder per UI feature
+    today/         # left pane (today_screen.dart + tag_filter_bar)
+    calendar/      # right pane (calendar_panel + week/month views)
+    tags/          # tag manager dialog
+    quick_add/     # add-time & quick-add dialogs + dialog host
+    tasks/         # task edit dialog
+
+  shell/
+    home_shell.dart  # responsive layout, AppBar, FAB, tray lifecycle
+    windowing.dart   # GTK4/libadwaita headerbar hook (MethodChannel)
+
+  services/
+    tray_service.dart  # system tray integration
+  providers/
+    providers.dart  # backwards-compat barrel re-exporting core/providers
+```
+
+The CLI lives in `bin/clockwork.dart` and shares the data layer (database,
+dates, paths, tokens) with the GUI.
+
+### GTK4 / libadwaita integration
+
+The Linux build probes for `gtk4` and `libadwaita-1` at CMake time; if
+present, it links against them, and the Dart side issues a
+`MethodChannel('dev.sequ.clockwork/headerbar')` call at startup to install
+an `AdwApplicationWindow`-style headerbar. The call is a no-op when the
+native shim isn't registered, so the app keeps working on systems that
+only have the GTK3 Flutter embedder. The native shim itself is a small
+piece of C/Vala that lives under `linux/runner/` and is not part of this
+sandbox build.

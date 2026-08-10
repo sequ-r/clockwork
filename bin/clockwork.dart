@@ -2,6 +2,7 @@
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
+import 'package:clockwork/app/tokens.dart';
 import 'package:clockwork/cli/parsing.dart';
 import 'package:clockwork/database/database.dart';
 import 'package:clockwork/database/dates.dart';
@@ -27,17 +28,6 @@ Future<Tag?> findTag(ClockworkDatabase db, String nameOrId) async {
   return null;
 }
 
-const _autoCreateColors = [
-  0xFF64B5F6,
-  0xFF81C784,
-  0xFFFFB74D,
-  0xFFBA68C8,
-  0xFF4DD0E1,
-  0xFFE57373,
-  0xFFFFD54F,
-  0xFF90A4AE,
-];
-
 /// Finds a tag by name, creating it when missing.
 Future<Tag> findOrCreateTag(ClockworkDatabase db, String name) async {
   final existing = await findTag(db, name);
@@ -46,7 +36,7 @@ Future<Tag> findOrCreateTag(ClockworkDatabase db, String name) async {
   final id = await db.tagDao.createTag(
     TagsCompanion.insert(
       name: name,
-      color: _autoCreateColors[tags.length % _autoCreateColors.length],
+      color: kAutoTagColors[tags.length % kAutoTagColors.length],
     ),
   );
   print('Created project "$name"');

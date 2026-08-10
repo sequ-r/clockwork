@@ -2,9 +2,9 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../database/database.dart';
-import '../database/dates.dart';
-import '../providers/providers.dart';
+import '../../database/database.dart';
+import '../../database/dates.dart';
+import '../../providers/providers.dart';
 
 const _palette = [
   0xFFE57373,
@@ -52,9 +52,7 @@ class TagManagerDialog extends ConsumerWidget {
                       title: Text(tag.name),
                       subtitle: tag.parentId == null
                           ? null
-                          : Text(
-                              'under ${byId[tag.parentId]?.name ?? '?'}',
-                            ),
+                          : Text('under ${byId[tag.parentId]?.name ?? '?'}'),
                       trailing: totals[tag.id] == null
                           ? null
                           : Text(formatDuration(totals[tag.id]!)),
@@ -126,11 +124,13 @@ class _TagEditDialogState extends ConsumerState<TagEditDialog> {
         ),
       );
     } else {
-      await dao.updateTag(widget.tag!.copyWith(
-        name: name,
-        color: _color,
-        parentId: Value(_parentId),
-      ));
+      await dao.updateTag(
+        widget.tag!.copyWith(
+          name: name,
+          color: _color,
+          parentId: Value(_parentId),
+        ),
+      );
     }
     if (mounted) Navigator.pop(context);
   }
@@ -143,8 +143,7 @@ class _TagEditDialogState extends ConsumerState<TagEditDialog> {
   @override
   Widget build(BuildContext context) {
     final tags = ref.watch(tagsProvider).valueOrNull ?? [];
-    final possibleParents =
-        tags.where((t) => t.id != widget.tag?.id).toList();
+    final possibleParents = tags.where((t) => t.id != widget.tag?.id).toList();
 
     return AlertDialog(
       title: Text(_isNew ? 'New tag' : 'Edit tag'),

@@ -3,15 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import '../database/database.dart';
-import '../database/dates.dart';
-import '../providers/providers.dart';
-import 'task_edit_dialog.dart';
+import '../../database/database.dart';
+import '../../database/dates.dart';
+import '../../providers/providers.dart';
+import '../tasks/task_edit_dialog.dart';
 
-/// Left pane: welcome header, task list with hours per task, and the
+/// Today pane: welcome header, task list with hours per task, and the
 /// time entries logged on the selected day.
-class LeftPanel extends ConsumerWidget {
-  const LeftPanel({super.key});
+class TodayScreen extends ConsumerWidget {
+  const TodayScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -61,10 +61,9 @@ class _WelcomeHeader extends ConsumerWidget {
         const SizedBox(height: 4),
         Text(
           DateFormat('EEEE, d MMMM').format(selectedDate),
-          style: Theme.of(context)
-              .textTheme
-              .bodyMedium
-              ?.copyWith(color: colorScheme.outline),
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: colorScheme.outline),
         ),
         const SizedBox(height: 8),
         Row(
@@ -72,15 +71,14 @@ class _WelcomeHeader extends ConsumerWidget {
             Text(
               'Tracked: ${formatDuration(total)}',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: colorScheme.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
+                color: colorScheme.primary,
+                fontWeight: FontWeight.w600,
+              ),
             ),
             if (overLimit) ...[
               const SizedBox(width: 8),
               Tooltip(
-                message:
-                    'Over the ${workingHoursLimit.inHours}h working limit',
+                message: 'Over the ${workingHoursLimit.inHours}h working limit',
                 child: Icon(
                   Icons.warning_amber_rounded,
                   color: colorScheme.error,
@@ -114,7 +112,9 @@ class _AddTaskFieldState extends ConsumerState<_AddTaskField> {
     final title = _controller.text.trim();
     if (title.isEmpty) return;
     final day = dateKey(ref.read(selectedDateProvider));
-    await ref.read(taskDaoProvider).createTask(
+    await ref
+        .read(taskDaoProvider)
+        .createTask(
           TasksCompanion.insert(
             title: title,
             date: day,
@@ -186,8 +186,7 @@ class _TaskTile extends ConsumerWidget {
       ),
       subtitle: tag == null
           ? null
-          : Text(tag.name,
-              maxLines: 1, overflow: TextOverflow.ellipsis),
+          : Text(tag.name, maxLines: 1, overflow: TextOverflow.ellipsis),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -196,8 +195,7 @@ class _TaskTile extends ConsumerWidget {
           if (hours != null && hours > Duration.zero) ...[
             const SizedBox(width: 8),
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
                 color: colorScheme.primaryContainer,
                 borderRadius: BorderRadius.circular(12),
@@ -205,8 +203,8 @@ class _TaskTile extends ConsumerWidget {
               child: Text(
                 formatDuration(hours),
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: colorScheme.onPrimaryContainer,
-                    ),
+                  color: colorScheme.onPrimaryContainer,
+                ),
               ),
             ),
           ],
@@ -235,8 +233,7 @@ class _LoggedTimeSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Logged time',
-            style: Theme.of(context).textTheme.titleSmall),
+        Text('Logged time', style: Theme.of(context).textTheme.titleSmall),
         ConstrainedBox(
           constraints: const BoxConstraints(maxHeight: 180),
           child: ListView(
@@ -270,8 +267,7 @@ class _EntryTile extends ConsumerWidget {
       contentPadding: EdgeInsets.zero,
       leading: CircleAvatar(
         radius: 5,
-        backgroundColor:
-            tag == null ? Colors.grey : Color(tag!.color),
+        backgroundColor: tag == null ? Colors.grey : Color(tag!.color),
       ),
       title: Text(
         entry.notes ?? tag?.name ?? 'Time entry',
@@ -279,8 +275,7 @@ class _EntryTile extends ConsumerWidget {
         overflow: TextOverflow.ellipsis,
       ),
       subtitle: tag != null && entry.notes != null
-          ? Text(tag!.name,
-              maxLines: 1, overflow: TextOverflow.ellipsis)
+          ? Text(tag!.name, maxLines: 1, overflow: TextOverflow.ellipsis)
           : null,
       trailing: Row(
         mainAxisSize: MainAxisSize.min,

@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import '../database/database.dart';
-import '../database/dates.dart';
-import '../providers/providers.dart';
+import '../../../app/theme.dart';
+import '../../../database/database.dart';
+import '../../../database/dates.dart';
+import '../../../providers/providers.dart';
 
 /// Week overview: one column per day with tasks and tracked time.
 class WeekView extends ConsumerWidget {
@@ -26,32 +27,40 @@ class WeekView extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         for (var i = 0; i < 7; i++)
-          Builder(builder: (context) {
-            final day = monday.add(Duration(days: i));
-            final key = dateKey(day);
-            final dayTasks = tasks
-                .where((t) =>
-                    t.date == key && (filter == null || t.tagId == filter))
-                .toList();
-            final dayEntries = entries
-                .where((e) =>
-                    e.date == key && (filter == null || e.tagId == filter))
-                .toList()
-              ..sort((a, b) => a.id.compareTo(b.id));
-            return Expanded(
-              child: _DayColumn(
-                date: day,
-                isSelected: key == selectedKey,
-                isToday: key == todayKey,
-                tasks: dayTasks,
-                entries: dayEntries,
-                total: dailyTotals[key] ?? Duration.zero,
-                tagById: tagById,
-                onTap: () =>
-                    ref.read(selectedDateProvider.notifier).state = day,
-              ),
-            );
-          }),
+          Builder(
+            builder: (context) {
+              final day = monday.add(Duration(days: i));
+              final key = dateKey(day);
+              final dayTasks = tasks
+                  .where(
+                    (t) =>
+                        t.date == key && (filter == null || t.tagId == filter),
+                  )
+                  .toList();
+              final dayEntries =
+                  entries
+                      .where(
+                        (e) =>
+                            e.date == key &&
+                            (filter == null || e.tagId == filter),
+                      )
+                      .toList()
+                    ..sort((a, b) => a.id.compareTo(b.id));
+              return Expanded(
+                child: _DayColumn(
+                  date: day,
+                  isSelected: key == selectedKey,
+                  isToday: key == todayKey,
+                  tasks: dayTasks,
+                  entries: dayEntries,
+                  total: dailyTotals[key] ?? Duration.zero,
+                  tagById: tagById,
+                  onTap: () =>
+                      ref.read(selectedDateProvider.notifier).state = day,
+                ),
+              );
+            },
+          ),
       ],
     );
   }
@@ -86,12 +95,12 @@ class _DayColumn extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.all(4),
+        margin: const EdgeInsets.all(kSpacingXs),
         decoration: BoxDecoration(
           color: isSelected
               ? colorScheme.primaryContainer.withAlpha(80)
               : colorScheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(kRadiusMedium),
           border: Border.all(
             color: isToday ? colorScheme.primary : Colors.transparent,
           ),
@@ -100,11 +109,13 @@ class _DayColumn extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(kSpacingSm),
               child: Column(
                 children: [
-                  Text(DateFormat.E().format(date),
-                      style: theme.textTheme.labelMedium),
+                  Text(
+                    DateFormat.E().format(date),
+                    style: theme.textTheme.labelMedium,
+                  ),
                   Text(
                     '${date.day}',
                     style: theme.textTheme.titleMedium?.copyWith(
@@ -112,16 +123,14 @@ class _DayColumn extends StatelessWidget {
                       fontWeight: isToday ? FontWeight.bold : null,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: kSpacingXs),
                   FittedBox(
                     fit: BoxFit.scaleDown,
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          total == Duration.zero
-                              ? '-'
-                              : formatDuration(total),
+                          total == Duration.zero ? '-' : formatDuration(total),
                           style: theme.textTheme.labelLarge?.copyWith(
                             color: colorScheme.primary,
                           ),
@@ -129,7 +138,8 @@ class _DayColumn extends StatelessWidget {
                         if (isOverLimit(total)) ...[
                           const SizedBox(width: 4),
                           Tooltip(
-                            message: 'Over the '
+                            message:
+                                'Over the '
                                 '${workingHoursLimit.inHours}h working limit',
                             child: Icon(
                               Icons.warning_amber_rounded,
@@ -183,10 +193,13 @@ class _DayColumn extends StatelessWidget {
                     Container(
                       margin: const EdgeInsets.only(bottom: 4),
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 3),
+                        horizontal: 6,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
-                        color:
-                            colorScheme.surfaceContainerHighest.withAlpha(120),
+                        color: colorScheme.surfaceContainerHighest.withAlpha(
+                          120,
+                        ),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Row(
@@ -195,8 +208,9 @@ class _DayColumn extends StatelessWidget {
                             radius: 4,
                             backgroundColor: entry.tagId == null
                                 ? Colors.grey
-                                : Color(tagById[entry.tagId]?.color ??
-                                    0xFF888888),
+                                : Color(
+                                    tagById[entry.tagId]?.color ?? 0xFF888888,
+                                  ),
                           ),
                           const SizedBox(width: 4),
                           Expanded(

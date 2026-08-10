@@ -2,9 +2,9 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../database/database.dart';
-import '../database/dates.dart';
-import '../providers/providers.dart';
+import '../../database/database.dart';
+import '../../database/dates.dart';
+import '../../providers/providers.dart';
 
 /// Minimal quick-add widget opened from the system tray: just the amount
 /// of hours to add to today and a plus button.
@@ -34,7 +34,9 @@ class _QuickAddDialogState extends ConsumerState<QuickAddDialog> {
     final minutes = _minutes;
     if (minutes == null) return;
     final now = DateTime.now();
-    await ref.read(timeEntryDaoProvider).createEntry(
+    await ref
+        .read(timeEntryDaoProvider)
+        .createEntry(
           TimeEntriesCompanion.insert(
             date: dateKey(now),
             minutes: minutes,
@@ -58,8 +60,9 @@ class _QuickAddDialogState extends ConsumerState<QuickAddDialog> {
             child: TextField(
               controller: _hoursController,
               autofocus: true,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
                 suffixText: 'h',
