@@ -223,8 +223,8 @@ class _LoggedTimeSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final entries = ref.watch(entriesForSelectedDateProvider).valueOrNull ?? []
-      ..sort((a, b) => b.id.compareTo(a.id));
+    final entries =
+        ref.watch(entriesForSelectedDateProvider).valueOrNull ?? const [];
     final tags = ref.watch(tagsProvider).valueOrNull ?? [];
 
     if (entries.isEmpty) {

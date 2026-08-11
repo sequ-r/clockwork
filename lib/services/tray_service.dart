@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -35,17 +36,24 @@ class TrayService with TrayListener {
 
   Future<void> init() async {
     if (!isSupported || _initialized) return;
-    _initialized = true;
     try {
       await trayManager.setIcon(
         resolvedAssetPath('assets/images/tray_icon.png'),
       );
-    } catch (error) {
-      return;
+      await _configurePlatformExtras();
+      await _rebuildMenu();
+      trayManager.addListener(this);
+      _initialized = true;
+    } catch (error, stack) {
+      developer.log(
+        'tray init failed',
+        name: 'tray',
+        level: 1000,
+        error: error,
+        stackTrace: stack,
+      );
+      rethrow;
     }
-    await _configurePlatformExtras();
-    await _rebuildMenu();
-    trayManager.addListener(this);
   }
 
   void dispose() {
@@ -55,8 +63,8 @@ class TrayService with TrayListener {
   /// Applies platform-specific tray properties.
   ///
   /// The Linux implementation only supports a title, while Windows and
-  /// macOS also support tooltips. Failures are ignored so that the menu
-  /// is always installed.
+  /// macOS also support tooltips. Failures are logged but do not abort
+  /// init, because the menu and icon are the critical surfaces.
   Future<void> _configurePlatformExtras() async {
     try {
       if (Platform.isLinux) {
@@ -64,8 +72,14 @@ class TrayService with TrayListener {
       } else {
         await trayManager.setToolTip('Clockwork');
       }
-    } catch (_) {
-      // Not critical: the menu still works without a tooltip/title.
+    } catch (error, stack) {
+      developer.log(
+        'tray platform extras failed',
+        name: 'tray',
+        level: 900,
+        error: error,
+        stackTrace: stack,
+      );
     }
   }
 

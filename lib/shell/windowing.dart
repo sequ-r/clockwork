@@ -10,6 +10,8 @@
 /// don't have the native plugin.
 library;
 
+import 'dart:developer' as developer;
+
 import 'package:flutter/services.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -35,15 +37,23 @@ Future<void> initializeWindowing() async {
 
 /// Asks the native side to install a libadwaita-style headerbar.
 ///
-/// Silently swallows `MissingPluginException` so the app continues to
-/// work when running on platforms (or Linux builds) without the plugin.
+/// Intentionally inert in the current build: the native plugin
+/// (`linux/runner/`) does not register this channel, so every call
+/// raises `MissingPluginException`. The handler exists so that when
+/// the plugin is later registered no Dart changes are required.
 Future<void> requestHeaderBar() async {
   try {
     await _headerBarChannel.invokeMethod<void>('install');
   } on MissingPluginException {
     // Plugin not registered: no-op.
-  } on PlatformException {
-    // Plugin present but failed: log and continue.
+  } on PlatformException catch (error, stack) {
+    developer.log(
+      'headerbar install failed',
+      name: 'windowing',
+      level: 900,
+      error: error,
+      stackTrace: stack,
+    );
   }
 }
 

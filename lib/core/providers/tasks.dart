@@ -29,7 +29,11 @@ final tasksForSelectedDateProvider = StreamProvider<List<Task>>((ref) {
 
 final entriesForSelectedDateProvider = StreamProvider<List<TimeEntry>>((ref) {
   final date = dateKey(ref.watch(selectedDateProvider));
-  return ref.watch(timeEntryDaoProvider).watchForDate(date);
+  return ref.watch(timeEntryDaoProvider).watchForDate(date).map((entries) {
+    final sorted = [...entries];
+    sorted.sort((a, b) => b.id.compareTo(a.id));
+    return List<TimeEntry>.unmodifiable(sorted);
+  });
 });
 
 /// Tasks of the visible calendar range.

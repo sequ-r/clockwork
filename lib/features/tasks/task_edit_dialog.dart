@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../database/database.dart';
 import '../../database/dates.dart';
@@ -106,7 +107,7 @@ class _TaskEditDialogState extends ConsumerState<TaskEditDialog> {
                 OutlinedButton.icon(
                   onPressed: _pickDate,
                   icon: const Icon(Icons.calendar_today),
-                  label: Text(_dateKey),
+                  label: Text(DateFormat.yMMMd().format(dateFromKey(_dateKey))),
                 ),
               ],
             ),

@@ -60,7 +60,8 @@ Day formats: `today`, `yesterday`, `YYYY-MM-DD`.
 ## Development
 
 ```sh
-dart run build_runner build --delete-conflicting-outputs  # after schema changes
+dart run build_runner build                 # after schema changes
+flutter gen-l10n                            # after adding strings
 flutter analyze
 flutter test
 ```
@@ -102,13 +103,10 @@ lib/
 The CLI lives in `bin/clockwork.dart` and shares the data layer (database,
 dates, paths, tokens) with the GUI.
 
-### GTK4 / libadwaita integration
+## Rework in progress
 
-The Linux build probes for `gtk4` and `libadwaita-1` at CMake time; if
-present, it links against them, and the Dart side issues a
-`MethodChannel('dev.sequ.clockwork/headerbar')` call at startup to install
-an `AdwApplicationWindow`-style headerbar. The call is a no-op when the
-native shim isn't registered, so the app keeps working on systems that
-only have the GTK3 Flutter embedder. The native shim itself is a small
-piece of C/Vala that lives under `linux/runner/` and is not part of this
-sandbox build.
+A multi-phase rework is underway; see `docs/REWORK_PLAN.md`. The current
+Linux build uses the GTK3 Flutter embedder. The libadwaita headerbar
+described in earlier revisions is not implemented and the
+`MethodChannel('dev.sequ.clockwork/headerbar')` calls are intentionally
+no-ops until a native shim is added.

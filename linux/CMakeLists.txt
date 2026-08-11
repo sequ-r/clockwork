@@ -50,19 +50,10 @@ endfunction()
 set(FLUTTER_MANAGED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/flutter")
 add_subdirectory(${FLUTTER_MANAGED_DIR})
 
-# System-level dependencies.
-#
-# We try GTK4 + libadwaita-1 first (Path C of the rewrite plan: native
-# shell chrome). If those aren't present we fall back to GTK3 so the app
-# still builds on systems whose Flutter embedder is still on the older
-# stack. The runtime side reads `CLOCKWORK_GTK_HEADERBAR` to decide
-# whether to request the libadwaita-styled title bar.
+# System-level dependencies. The Flutter Linux embedder is GTK3-based,
+# so we link against gtk+-3.0 unconditionally.
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(GTK4 IMPORTED_TARGET gtk4)
-pkg_check_modules(LIBADWAITA IMPORTED_TARGET libadwaita-1)
-if(NOT GTK4_FOUND)
-  pkg_check_modules(GTK REQUIRED IMPORTED_TARGET gtk+-3.0)
-endif()
+pkg_check_modules(GTK REQUIRED IMPORTED_TARGET gtk+-3.0)
 
 # Application build; see runner/CMakeLists.txt.
 add_subdirectory("runner")
