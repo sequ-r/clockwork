@@ -116,7 +116,7 @@ class TrayService with TrayListener {
   Future<void> _openQuickAdd() async {
     await _showMainWindow();
     final notifier = _ref.read(quickAddRequestProvider.notifier);
-    notifier.state++;
+    notifier.request();
   }
 
   Future<void> _showMainWindow() async {

@@ -16,7 +16,7 @@ class MonthView extends ConsumerWidget {
     final daysInMonth = DateTime(anchor.year, anchor.month + 1, 0).day;
     // Monday-first week: how many blanks to insert before day 1?
     final leadingBlanks = firstOfMonth.weekday - DateTime.monday;
-    final tasks = ref.watch(visibleTasksProvider).valueOrNull ?? [];
+    final tasks = ref.watch(visibleTasksProvider).value ?? [];
     final dailyTotals = ref.watch(dailyTotalsProvider);
     final filter = ref.watch(tagFilterProvider);
     final todayKey = dateKey(DateTime.now());
@@ -45,7 +45,7 @@ class MonthView extends ConsumerWidget {
               isToday: key == todayKey,
               isSelected: key == selectedKey,
               onTap: () {
-                ref.read(selectedDateProvider.notifier).state = date;
+                ref.read(selectedDateProvider.notifier).set(date);
               },
             );
           },

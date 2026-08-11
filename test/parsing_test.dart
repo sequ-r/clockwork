@@ -1,5 +1,5 @@
 import 'package:clockwork/cli/parsing.dart';
-import 'package:test/test.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('parseDurationMinutes', () {

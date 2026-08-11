@@ -42,8 +42,7 @@ class CalendarPanel extends ConsumerWidget {
                 ],
                 selected: {view},
                 onSelectionChanged: (selection) =>
-                    ref.read(calendarViewProvider.notifier).state =
-                        selection.first,
+                    ref.read(calendarViewProvider.notifier).set(selection.first),
               ),
               IconButton(
                 tooltip: 'Previous',
@@ -65,8 +64,8 @@ class CalendarPanel extends ConsumerWidget {
                 onPressed: () {
                   final now = DateTime.now();
                   final day = DateTime(now.year, now.month, now.day);
-                  ref.read(calendarAnchorProvider.notifier).state = day;
-                  ref.read(selectedDateProvider.notifier).state = day;
+                  ref.read(calendarAnchorProvider.notifier).set(day);
+                  ref.read(selectedDateProvider.notifier).set(day);
                 },
               ),
               IconButton(
@@ -101,6 +100,6 @@ class CalendarPanel extends ConsumerWidget {
         1,
       ),
     };
-    ref.read(calendarAnchorProvider.notifier).state = target;
+    ref.read(calendarAnchorProvider.notifier).set(target);
   }
 }

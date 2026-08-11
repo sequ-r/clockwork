@@ -163,11 +163,11 @@ class _TaskTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tags = ref.watch(tagsProvider).valueOrNull ?? [];
+    final tags = ref.watch(tagsProvider).value ?? [];
     final tag = task.tagId == null
         ? null
         : tags.where((t) => t.id == task.tagId).firstOrNull;
-    final hours = ref.watch(taskHoursProvider).valueOrNull?[task.id];
+    final hours = ref.watch(taskHoursProvider).value?[task.id];
     final colorScheme = Theme.of(context).colorScheme;
 
     return ListTile(
@@ -224,8 +224,8 @@ class _LoggedTimeSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final entries =
-        ref.watch(entriesForSelectedDateProvider).valueOrNull ?? const [];
-    final tags = ref.watch(tagsProvider).valueOrNull ?? [];
+        ref.watch(entriesForSelectedDateProvider).value ?? const [];
+    final tags = ref.watch(tagsProvider).value ?? [];
 
     if (entries.isEmpty) {
       return const SizedBox.shrink();

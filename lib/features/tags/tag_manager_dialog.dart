@@ -30,7 +30,7 @@ class TagManagerDialog extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tags = ref.watch(tagsProvider).valueOrNull ?? [];
+    final tags = ref.watch(tagsProvider).value ?? [];
     final totals = ref.watch(visibleTagTotalsProvider);
     final byId = {for (final t in tags) t.id: t};
 
@@ -142,7 +142,7 @@ class _TagEditDialogState extends ConsumerState<TagEditDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final tags = ref.watch(tagsProvider).valueOrNull ?? [];
+    final tags = ref.watch(tagsProvider).value ?? [];
     final possibleParents = tags.where((t) => t.id != widget.tag?.id).toList();
 
     return AlertDialog(

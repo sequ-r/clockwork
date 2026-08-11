@@ -75,7 +75,7 @@ class _TaskEditDialogState extends ConsumerState<TaskEditDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final tags = ref.watch(tagsProvider).valueOrNull ?? [];
+    final tags = ref.watch(tagsProvider).value ?? [];
 
     return AlertDialog(
       title: const Text('Edit task'),

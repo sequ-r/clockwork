@@ -14,10 +14,10 @@ class WeekView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final monday = startOfWeek(ref.watch(calendarAnchorProvider));
-    final tasks = ref.watch(visibleTasksProvider).valueOrNull ?? [];
-    final entries = ref.watch(visibleEntriesProvider).valueOrNull ?? [];
+    final tasks = ref.watch(visibleTasksProvider).value ?? [];
+    final entries = ref.watch(visibleEntriesProvider).value ?? [];
     final dailyTotals = ref.watch(dailyTotalsProvider);
-    final tags = ref.watch(tagsProvider).valueOrNull ?? [];
+    final tags = ref.watch(tagsProvider).value ?? [];
     final tagById = {for (final t in tags) t.id: t};
     final filter = ref.watch(tagFilterProvider);
     final todayKey = dateKey(DateTime.now());
@@ -56,7 +56,7 @@ class WeekView extends ConsumerWidget {
                   total: dailyTotals[key] ?? Duration.zero,
                   tagById: tagById,
                   onTap: () =>
-                      ref.read(selectedDateProvider.notifier).state = day,
+                      ref.read(selectedDateProvider.notifier).set(day),
                 ),
               );
             },

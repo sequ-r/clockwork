@@ -96,9 +96,9 @@ class _AddTimeDialogState extends ConsumerState<AddTimeDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final tags = ref.watch(tagsProvider).valueOrNull ?? [];
+    final tags = ref.watch(tagsProvider).value ?? [];
     final tasks =
-        ref.watch(tasksForDateProvider(dateKey(_date))).valueOrNull ?? [];
+        ref.watch(tasksForDateProvider(dateKey(_date))).value ?? [];
     final eligibleTasks = tasks
         .where((t) => _tagId == null || t.tagId == _tagId)
         .toList();

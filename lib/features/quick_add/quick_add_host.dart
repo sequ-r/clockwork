@@ -19,7 +19,7 @@ class QuickAddDialogHost extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    ref.listen<int>(quickAddRequestProvider, (_, __) {
+    ref.listen<int>(quickAddRequestProvider, (prev, next) {
       // Defer to the next frame so we don't try to show a dialog while
       // the parent widget is still building.
       WidgetsBinding.instance.addPostFrameCallback((_) {

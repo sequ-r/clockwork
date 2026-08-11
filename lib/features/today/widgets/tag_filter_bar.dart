@@ -8,7 +8,7 @@ class TagFilterBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tags = ref.watch(tagsProvider).valueOrNull ?? [];
+    final tags = ref.watch(tagsProvider).value ?? [];
     final selected = ref.watch(tagFilterProvider);
 
     return SizedBox(
@@ -23,7 +23,7 @@ class TagFilterBar extends ConsumerWidget {
               label: const Text('All'),
               selected: selected == null,
               onSelected: (_) =>
-                  ref.read(tagFilterProvider.notifier).state = null,
+                  ref.read(tagFilterProvider.notifier).set(null),
             ),
           ),
           for (final tag in tags)
@@ -37,7 +37,7 @@ class TagFilterBar extends ConsumerWidget {
                 label: Text(tag.name),
                 selected: selected == tag.id,
                 onSelected: (_) =>
-                    ref.read(tagFilterProvider.notifier).state = tag.id,
+                    ref.read(tagFilterProvider.notifier).set(tag.id),
               ),
             ),
         ],

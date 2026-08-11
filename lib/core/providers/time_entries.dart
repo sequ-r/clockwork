@@ -19,19 +19,19 @@ final visibleEntriesProvider = StreamProvider<List<TimeEntry>>((ref) {
 
 /// Total tracked time of the selected day.
 final selectedDateTotalProvider = Provider<Duration>((ref) {
-  final entries = ref.watch(entriesForSelectedDateProvider).valueOrNull ?? [];
+  final entries = ref.watch(entriesForSelectedDateProvider).value ?? [];
   return totalMinutes(entries.map((e) => e.minutes));
 });
 
 /// Total tracked time of the visible calendar range.
 final visibleTotalProvider = Provider<Duration>((ref) {
-  final entries = ref.watch(visibleEntriesProvider).valueOrNull ?? [];
+  final entries = ref.watch(visibleEntriesProvider).value ?? [];
   return totalMinutes(entries.map((e) => e.minutes));
 });
 
 /// Total tracked time per day-key of the visible calendar range.
 final dailyTotalsProvider = Provider<Map<String, Duration>>((ref) {
-  final entries = ref.watch(visibleEntriesProvider).valueOrNull ?? [];
+  final entries = ref.watch(visibleEntriesProvider).value ?? [];
   final totals = <String, Duration>{};
   for (final entry in entries) {
     totals[entry.date] =
@@ -43,7 +43,7 @@ final dailyTotalsProvider = Provider<Map<String, Duration>>((ref) {
 
 /// Tracked time per task-id, over all time, for the selected day's tasks.
 final taskHoursProvider = Provider<AsyncValue<Map<int, Duration>>>((ref) {
-  final tasks = ref.watch(tasksForSelectedDateProvider).valueOrNull ?? [];
+  final tasks = ref.watch(tasksForSelectedDateProvider).value ?? [];
   if (tasks.isEmpty) {
     return const AsyncData(<int, Duration>{});
   }
@@ -71,7 +71,7 @@ final _taskEntriesProvider = StreamProvider.family
 
 /// Tracked time per tag-id of the visible calendar range.
 final visibleTagTotalsProvider = Provider<Map<int, Duration>>((ref) {
-  final entries = ref.watch(visibleEntriesProvider).valueOrNull ?? [];
+  final entries = ref.watch(visibleEntriesProvider).value ?? [];
   final totals = <int, Duration>{};
   for (final entry in entries) {
     final tagId = entry.tagId;

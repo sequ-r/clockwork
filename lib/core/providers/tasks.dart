@@ -45,7 +45,7 @@ final visibleTasksProvider = StreamProvider<List<Task>>((ref) {
 
 /// Tasks of the selected day, filtered by the active tag.
 final filteredTasksProvider = Provider<List<Task>>((ref) {
-  final tasks = ref.watch(tasksForSelectedDateProvider).valueOrNull ?? [];
+  final tasks = ref.watch(tasksForSelectedDateProvider).value ?? [];
   final filter = ref.watch(tagFilterProvider);
   if (filter == null) return tasks;
   return tasks.where((t) => t.tagId == filter).toList();
