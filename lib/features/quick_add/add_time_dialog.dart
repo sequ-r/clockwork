@@ -10,8 +10,12 @@ import '../../providers/providers.dart';
 /// Main "+ button" workflow: choose hours to add to the day, attach an
 /// optional comment and tag, then confirm.
 class AddTimeDialog extends ConsumerStatefulWidget {
+  /// Creates the dialog.
+  ///
+  /// When [initialTaskId] is provided, the dialog pre-selects that task.
   const AddTimeDialog({super.key, this.initialTaskId});
 
+  /// Optional task pre-selected when the dialog opens.
   final int? initialTaskId;
 
   @override
@@ -97,8 +101,7 @@ class _AddTimeDialogState extends ConsumerState<AddTimeDialog> {
   @override
   Widget build(BuildContext context) {
     final tags = ref.watch(tagsProvider).value ?? [];
-    final tasks =
-        ref.watch(tasksForDateProvider(dateKey(_date))).value ?? [];
+    final tasks = ref.watch(tasksForDateProvider(dateKey(_date))).value ?? [];
     final eligibleTasks = tasks
         .where((t) => _tagId == null || t.tagId == _tagId)
         .toList();

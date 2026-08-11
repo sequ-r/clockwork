@@ -13,8 +13,10 @@ import 'quick_add_dialog.dart';
 /// tray click produces a fresh event even if the dialog was already shown
 /// and dismissed.
 class QuickAddDialogHost extends ConsumerWidget {
+  /// Wraps [child] and opens [QuickAddDialog] whenever the tray requests.
   const QuickAddDialogHost({super.key, required this.child});
 
+  /// The widget tree underneath the host.
   final Widget child;
 
   @override

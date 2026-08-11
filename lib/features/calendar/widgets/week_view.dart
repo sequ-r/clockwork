@@ -7,8 +7,15 @@ import '../../../database/database.dart';
 import '../../../database/dates.dart';
 import '../../../providers/providers.dart';
 
+/// Renders a time entry as `1h 30m - notes` (notes omitted when empty).
+String _entryLabel(TimeEntry entry) {
+  final minutes = formatDuration(Duration(minutes: entry.minutes));
+  return entry.notes == null ? minutes : '$minutes - ${entry.notes}';
+}
+
 /// Week overview: one column per day with tasks and tracked time.
 class WeekView extends ConsumerWidget {
+  /// Creates the week overview pane.
   const WeekView({super.key});
 
   @override
@@ -55,8 +62,7 @@ class WeekView extends ConsumerWidget {
                   entries: dayEntries,
                   total: dailyTotals[key] ?? Duration.zero,
                   tagById: tagById,
-                  onTap: () =>
-                      ref.read(selectedDateProvider.notifier).set(day),
+                  onTap: () => ref.read(selectedDateProvider.notifier).set(day),
                 ),
               );
             },
@@ -215,8 +221,7 @@ class _DayColumn extends StatelessWidget {
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
-                              '${formatDuration(Duration(minutes: entry.minutes))}'
-                              '${entry.notes != null ? ' - ${entry.notes}' : ''}',
+                              _entryLabel(entry),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: theme.textTheme.bodySmall,

@@ -11,14 +11,26 @@ const int kSeedColorArgb = 0xFF3E6B8C;
 /// libadwaita uses an 8-pixel grid with rounded corners. We mirror that
 /// here so widgets feel at home on GNOME.
 const double kRadiusSmall = 6;
+
+/// Standard medium corner radius for cards and sheets.
 const double kRadiusMedium = 12;
+
+/// Hero corner radius for large surfaces.
 const double kRadiusLarge = 16;
 
-/// Standard vertical/horizontal spacing scale.
+/// Extra-small spacing on the 4-pixel grid.
 const double kSpacingXs = 4;
+
+/// Small spacing on the 8-pixel grid.
 const double kSpacingSm = 8;
+
+/// Medium spacing on the 12-pixel grid.
 const double kSpacingMd = 12;
+
+/// Large spacing on the 16-pixel grid.
 const double kSpacingLg = 16;
+
+/// Extra-large spacing on the 24-pixel grid.
 const double kSpacingXl = 24;
 
 /// Color seed used to pick a color for newly auto-created tags. Kept in a

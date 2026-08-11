@@ -47,8 +47,9 @@ Future<void> _tearDown(WidgetTester tester, _Harness harness) async {
 }
 
 void main() {
-  testWidgets('home screen shows welcome message and add button',
-      (tester) async {
+  testWidgets('home screen shows welcome message and add button', (
+    tester,
+  ) async {
     final harness = await _pumpApp(tester);
 
     expect(find.textContaining('Good '), findsOneWidget);
@@ -83,8 +84,9 @@ void main() {
     await tester.tap(find.text('Add'));
     await _settle(tester);
 
-    final entries =
-        await harness.db.timeEntryDao.getForDate(dateKey(DateTime.now()));
+    final entries = await harness.db.timeEntryDao.getForDate(
+      dateKey(DateTime.now()),
+    );
     expect(entries.single.minutes, 60);
 
     await _tearDown(tester, harness);

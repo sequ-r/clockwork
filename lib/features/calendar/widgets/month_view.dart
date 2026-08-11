@@ -7,6 +7,7 @@ import '../../../providers/providers.dart';
 
 /// Month overview: calendar grid with per-day totals and task counts.
 class MonthView extends ConsumerWidget {
+  /// Creates the month overview pane.
   const MonthView({super.key});
 
   @override

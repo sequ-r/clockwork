@@ -9,6 +9,7 @@ import '../../providers/providers.dart';
 /// Minimal quick-add widget opened from the system tray: just the amount
 /// of hours to add to today and a plus button.
 class QuickAddDialog extends ConsumerStatefulWidget {
+  /// Creates the tray quick-add dialog.
   const QuickAddDialog({super.key});
 
   @override

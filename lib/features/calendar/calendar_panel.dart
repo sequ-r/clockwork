@@ -9,6 +9,7 @@ import 'widgets/week_view.dart';
 
 /// Right pane: weekly/monthly overview of tasks and tracked time.
 class CalendarPanel extends ConsumerWidget {
+  /// Creates the calendar pane in its default state.
   const CalendarPanel({super.key});
 
   @override
@@ -41,8 +42,9 @@ class CalendarPanel extends ConsumerWidget {
                   ),
                 ],
                 selected: {view},
-                onSelectionChanged: (selection) =>
-                    ref.read(calendarViewProvider.notifier).set(selection.first),
+                onSelectionChanged: (selection) => ref
+                    .read(calendarViewProvider.notifier)
+                    .set(selection.first),
               ),
               IconButton(
                 tooltip: 'Previous',

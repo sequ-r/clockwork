@@ -11,22 +11,23 @@ import '../tasks/task_edit_dialog.dart';
 /// Today pane: welcome header, task list with hours per task, and the
 /// time entries logged on the selected day.
 class TodayScreen extends ConsumerWidget {
+  /// Creates the today pane.
   const TodayScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
+    return const Padding(
+      padding: EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const _WelcomeHeader(),
-          const SizedBox(height: 16),
-          const _AddTaskField(),
-          const SizedBox(height: 12),
-          const Expanded(child: _TaskList()),
-          const Divider(),
-          const _LoggedTimeSection(),
+          _WelcomeHeader(),
+          SizedBox(height: 16),
+          _AddTaskField(),
+          SizedBox(height: 12),
+          Expanded(child: _TaskList()),
+          Divider(),
+          _LoggedTimeSection(),
         ],
       ),
     );
@@ -223,8 +224,7 @@ class _LoggedTimeSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final entries =
-        ref.watch(entriesForSelectedDateProvider).value ?? const [];
+    final entries = ref.watch(entriesForSelectedDateProvider).value ?? const [];
     final tags = ref.watch(tagsProvider).value ?? [];
 
     if (entries.isEmpty) {

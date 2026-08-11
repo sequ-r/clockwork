@@ -8,6 +8,7 @@ import '../../database/dates.dart';
 import 'database.dart';
 import 'ui_state.dart';
 
+/// Tasks for an arbitrary day-key. Family-parameterised.
 final tasksForDateProvider = StreamProvider.family<List<Task>, String>((
   ref,
   date,
@@ -15,6 +16,7 @@ final tasksForDateProvider = StreamProvider.family<List<Task>, String>((
   return ref.watch(taskDaoProvider).watchForDate(date);
 });
 
+/// Time entries for an arbitrary day-key. Family-parameterised.
 final entriesForDateProvider = StreamProvider.family<List<TimeEntry>, String>((
   ref,
   date,
@@ -22,11 +24,13 @@ final entriesForDateProvider = StreamProvider.family<List<TimeEntry>, String>((
   return ref.watch(timeEntryDaoProvider).watchForDate(date);
 });
 
+/// Tasks of the selected day, sorted by `id` ascending.
 final tasksForSelectedDateProvider = StreamProvider<List<Task>>((ref) {
   final date = dateKey(ref.watch(selectedDateProvider));
   return ref.watch(taskDaoProvider).watchForDate(date);
 });
 
+/// Time entries of the selected day, newest first by `id`.
 final entriesForSelectedDateProvider = StreamProvider<List<TimeEntry>>((ref) {
   final date = dateKey(ref.watch(selectedDateProvider));
   return ref.watch(timeEntryDaoProvider).watchForDate(date).map((entries) {

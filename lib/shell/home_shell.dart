@@ -16,6 +16,7 @@ import '../services/tray_service.dart';
 /// Concrete panes (Today / Calendar / Tags) are mounted as children of
 /// this widget.
 class HomeShell extends ConsumerStatefulWidget {
+  /// Creates the home shell.
   const HomeShell({super.key});
 
   @override
@@ -73,13 +74,13 @@ class _HomeShellState extends ConsumerState<HomeShell> with WindowListener {
           builder: (context, constraints) {
             final isWide = constraints.maxWidth >= 720;
             if (isWide) {
-              return Column(
+              return const Column(
                 children: [
-                  const TagFilterBar(),
+                  TagFilterBar(),
                   Expanded(
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: const [
+                      children: [
                         SizedBox(width: 380, child: TodayScreen()),
                         VerticalDivider(width: 1, thickness: 1),
                         Expanded(child: CalendarPanel()),

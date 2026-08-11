@@ -1,11 +1,13 @@
 /// Date helpers shared by GUI and CLI.
 library;
 
+/// Formats [date] as a `YYYY-MM-DD` day-key.
 String dateKey(DateTime date) =>
     '${date.year.toString().padLeft(4, '0')}-'
     '${date.month.toString().padLeft(2, '0')}-'
     '${date.day.toString().padLeft(2, '0')}';
 
+/// Parses a `YYYY-MM-DD` day-key into local midnight.
 DateTime dateFromKey(String key) => DateTime.parse(key);
 
 /// Monday of the week containing [date].
@@ -29,12 +31,14 @@ List<String> monthKeys(DateTime date) {
   );
 }
 
+/// Vestigial: difference between [start] and [end].
 Duration entryDuration(DateTime start, DateTime end) => end.difference(start);
 
 /// Total duration of a set of minute-based entries.
 Duration totalMinutes(Iterable<int> minutes) =>
     Duration(minutes: minutes.fold(0, (int sum, int m) => sum + m));
 
+/// Renders [d] as `45m` under one hour, otherwise `1h 05m`.
 String formatDuration(Duration d) {
   final h = d.inHours;
   final m = d.inMinutes.remainder(60);

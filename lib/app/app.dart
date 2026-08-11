@@ -12,6 +12,7 @@ import 'theme.dart';
 /// that touches platform plugins or Riverpod state lives in [HomeShell]
 /// (or further down the tree).
 class ClockworkApp extends ConsumerWidget {
+  /// Creates the application root.
   const ClockworkApp({super.key});
 
   @override

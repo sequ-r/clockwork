@@ -17,7 +17,13 @@ const workingHoursLimit = Duration(hours: 8);
 bool isOverLimit(Duration duration) => duration > workingHoursLimit;
 
 /// Available calendar views for the right pane.
-enum CalendarView { week, month }
+enum CalendarView {
+  /// Seven-day view, anchored on the week's Monday.
+  week,
+
+  /// Month grid, anchored on the first of the month.
+  month,
+}
 
 DateTime _todayMidnight() {
   final now = DateTime.now();
@@ -29,11 +35,13 @@ class SelectedDate extends Notifier<DateTime> {
   @override
   DateTime build() => _todayMidnight();
 
+  /// Replaces the selected day, normalised to local midnight.
   void set(DateTime value) {
     state = DateTime(value.year, value.month, value.day);
   }
 }
 
+/// Provider for the currently selected day.
 final selectedDateProvider = NotifierProvider<SelectedDate, DateTime>(
   SelectedDate.new,
 );
@@ -43,11 +51,13 @@ class CalendarAnchor extends Notifier<DateTime> {
   @override
   DateTime build() => _todayMidnight();
 
+  /// Replaces the anchor day, normalised to local midnight.
   void set(DateTime value) {
     state = DateTime(value.year, value.month, value.day);
   }
 }
 
+/// Active calendar view of the right pane.
 final calendarAnchorProvider = NotifierProvider<CalendarAnchor, DateTime>(
   CalendarAnchor.new,
 );
@@ -57,20 +67,25 @@ class CalendarViewMode extends Notifier<CalendarView> {
   @override
   CalendarView build() => CalendarView.week;
 
+  /// Switches between week and month.
   void set(CalendarView value) => state = value;
 }
 
-final calendarViewProvider =
-    NotifierProvider<CalendarViewMode, CalendarView>(CalendarViewMode.new);
+/// Provider for the active calendar view (week or month).
+final calendarViewProvider = NotifierProvider<CalendarViewMode, CalendarView>(
+  CalendarViewMode.new,
+);
 
 /// Selected tag filter; null means "all".
 class TagFilter extends Notifier<int?> {
   @override
   int? build() => null;
 
+  /// Sets or clears the active tag filter.
   void set(int? value) => state = value;
 }
 
+/// Provider for the active tag filter; null means no filter.
 final tagFilterProvider = NotifierProvider<TagFilter, int?>(TagFilter.new);
 
 /// Increments whenever the tray requests the quick-add dialog.
@@ -82,11 +97,15 @@ class QuickAddRequest extends Notifier<int> {
   @override
   int build() => 0;
 
+  /// Fires a quick-add request, visible to listeners as a state change.
   void request() => state = state + 1;
 }
 
-final quickAddRequestProvider =
-    NotifierProvider<QuickAddRequest, int>(QuickAddRequest.new);
+/// Provider that emits a fresh event each time the tray wants to open
+/// the quick-add dialog.
+final quickAddRequestProvider = NotifierProvider<QuickAddRequest, int>(
+  QuickAddRequest.new,
+);
 
 /// Day-keys covered by the visible calendar (week or month).
 final visibleDateKeysProvider = Provider<List<String>>((ref) {

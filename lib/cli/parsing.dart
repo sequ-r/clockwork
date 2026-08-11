@@ -34,8 +34,7 @@ int? parseDurationMinutes(String input) {
 /// invalid input.
 DateTime? parseDayOption(String? value, {DateTime? now}) {
   final reference = now ?? DateTime.now();
-  final today =
-      DateTime(reference.year, reference.month, reference.day);
+  final today = DateTime(reference.year, reference.month, reference.day);
   switch (value) {
     case null:
     case 'today':

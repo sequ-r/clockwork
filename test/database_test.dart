@@ -25,10 +25,7 @@ void main() {
     expect(august.last, '2026-08-31');
     expect(formatDuration(const Duration(hours: 1, minutes: 5)), '1h 05m');
     expect(formatDuration(const Duration(minutes: 45)), '45m');
-    expect(
-      totalMinutes([30, 90]),
-      const Duration(hours: 2),
-    );
+    expect(totalMinutes([30, 90]), const Duration(hours: 2));
   });
 
   test('tag CRUD and cascades', () async {
@@ -57,8 +54,7 @@ void main() {
       TagsCompanion.insert(name: 'Work', color: 0xFF000000),
     );
     await db.taskDao.createTask(
-      TasksCompanion.insert(
-          title: 'A', date: '2026-08-04', tagId: Value(tag)),
+      TasksCompanion.insert(title: 'A', date: '2026-08-04', tagId: Value(tag)),
     );
     await db.taskDao.createTask(
       TasksCompanion.insert(title: 'B', date: '2026-08-05'),
@@ -71,8 +67,10 @@ void main() {
     final done = (await db.taskDao.getForDate('2026-08-04')).single;
     expect(done.done, isTrue);
 
-    final ranged = await db.taskDao
-        .watchDateRange(['2026-08-04', '2026-08-05']).first;
+    final ranged = await db.taskDao.watchDateRange([
+      '2026-08-04',
+      '2026-08-05',
+    ]).first;
     expect(ranged.length, 2);
 
     await db.taskDao.deleteTask(done.id);
@@ -97,8 +95,10 @@ void main() {
     final day = await db.timeEntryDao.getForDate('2026-08-04');
     expect(day.single.minutes, 150);
 
-    final ranged = await db.timeEntryDao
-        .watchDateRange(['2026-08-04', '2026-08-05']).first;
+    final ranged = await db.timeEntryDao.watchDateRange([
+      '2026-08-04',
+      '2026-08-05',
+    ]).first;
     expect(ranged.length, 2);
     expect(
       totalMinutes(ranged.map((e) => e.minutes)),
@@ -115,11 +115,17 @@ void main() {
     );
     await db.timeEntryDao.createEntry(
       TimeEntriesCompanion.insert(
-          date: '2026-08-04', minutes: 60, taskId: Value(task)),
+        date: '2026-08-04',
+        minutes: 60,
+        taskId: Value(task),
+      ),
     );
     await db.timeEntryDao.createEntry(
       TimeEntriesCompanion.insert(
-          date: '2026-08-05', minutes: 30, taskId: Value(task)),
+        date: '2026-08-05',
+        minutes: 30,
+        taskId: Value(task),
+      ),
     );
 
     final entries = await db.timeEntryDao.watchForTaskIds([task]).first;

@@ -44,7 +44,7 @@ Future<Tag> findOrCreateTag(ClockworkDatabase db, String name) async {
   return created.firstWhere((tag) => tag.id == id);
 }
 
-class AddCommand extends Command {
+class AddCommand extends Command<void> {
   AddCommand(this.db) {
     argParser
       ..addOption(
@@ -126,7 +126,7 @@ class AddCommand extends Command {
   }
 }
 
-class ListCommand extends Command {
+class ListCommand extends Command<void> {
   ListCommand(this.db) {
     argParser.addOption(
       'day',
@@ -172,7 +172,7 @@ class ListCommand extends Command {
   }
 }
 
-class TaskCommand extends Command {
+class TaskCommand extends Command<void> {
   TaskCommand(this.db) {
     addSubcommand(TaskAddCommand(db));
     addSubcommand(TaskListCommand(db));
@@ -189,7 +189,7 @@ class TaskCommand extends Command {
   String get description => 'Manage tasks';
 }
 
-class TaskAddCommand extends Command {
+class TaskAddCommand extends Command<void> {
   TaskAddCommand(this.db) {
     argParser
       ..addOption('project', abbr: 'p', help: 'Project name or id')
@@ -235,7 +235,7 @@ class TaskAddCommand extends Command {
   }
 }
 
-class TaskListCommand extends Command {
+class TaskListCommand extends Command<void> {
   TaskListCommand(this.db) {
     argParser.addOption(
       'day',
@@ -272,7 +272,7 @@ class TaskListCommand extends Command {
   }
 }
 
-class TaskDoneCommand extends Command {
+class TaskDoneCommand extends Command<void> {
   TaskDoneCommand(this.db);
 
   final ClockworkDatabase db;
@@ -294,7 +294,7 @@ class TaskDoneCommand extends Command {
   }
 }
 
-class TaskRemoveCommand extends Command {
+class TaskRemoveCommand extends Command<void> {
   TaskRemoveCommand(this.db);
 
   final ClockworkDatabase db;
@@ -316,7 +316,7 @@ class TaskRemoveCommand extends Command {
   }
 }
 
-class ProjectCommand extends Command {
+class ProjectCommand extends Command<void> {
   ProjectCommand(this.db) {
     addSubcommand(ProjectAddCommand(db));
     addSubcommand(ProjectListCommand(db));
@@ -335,7 +335,7 @@ class ProjectCommand extends Command {
   String get description => 'Manage projects (tags)';
 }
 
-class ProjectAddCommand extends Command {
+class ProjectAddCommand extends Command<void> {
   ProjectAddCommand(this.db) {
     argParser
       ..addOption('parent', abbr: 'P', help: 'Parent project name or id')
@@ -377,7 +377,7 @@ class ProjectAddCommand extends Command {
   }
 }
 
-class ProjectListCommand extends Command {
+class ProjectListCommand extends Command<void> {
   ProjectListCommand(this.db);
 
   final ClockworkDatabase db;
@@ -405,7 +405,7 @@ class ProjectListCommand extends Command {
   }
 }
 
-class ProjectRemoveCommand extends Command {
+class ProjectRemoveCommand extends Command<void> {
   ProjectRemoveCommand(this.db);
 
   final ClockworkDatabase db;
@@ -433,7 +433,7 @@ class ProjectRemoveCommand extends Command {
   }
 }
 
-class TodayCommand extends Command {
+class TodayCommand extends Command<void> {
   TodayCommand(this.db);
 
   final ClockworkDatabase db;
@@ -471,7 +471,7 @@ class TodayCommand extends Command {
   }
 }
 
-class WeekCommand extends Command {
+class WeekCommand extends Command<void> {
   WeekCommand(this.db);
 
   final ClockworkDatabase db;

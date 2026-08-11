@@ -3,7 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../providers/providers.dart';
 
+/// Horizontal filter strip that lets the user scope today's task list
+/// to a single tag, or clear the filter.
 class TagFilterBar extends ConsumerWidget {
+  /// Creates the tag filter strip.
   const TagFilterBar({super.key});
 
   @override
@@ -22,8 +25,7 @@ class TagFilterBar extends ConsumerWidget {
             child: FilterChip(
               label: const Text('All'),
               selected: selected == null,
-              onSelected: (_) =>
-                  ref.read(tagFilterProvider.notifier).set(null),
+              onSelected: (_) => ref.read(tagFilterProvider.notifier).set(null),
             ),
           ),
           for (final tag in tags)

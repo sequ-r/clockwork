@@ -2,30 +2,15 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/tokens.dart';
 import '../../database/database.dart';
 import '../../database/dates.dart';
 import '../../providers/providers.dart';
 
-const _palette = [
-  0xFFE57373,
-  0xFFF06292,
-  0xFFBA68C8,
-  0xFF9575CD,
-  0xFF7986CB,
-  0xFF64B5F6,
-  0xFF4FC3F7,
-  0xFF4DD0E1,
-  0xFF4DB6AC,
-  0xFF81C784,
-  0xFFAED581,
-  0xFFFFD54F,
-  0xFFFFB74D,
-  0xFFFF8A65,
-  0xFFA1887F,
-  0xFF90A4AE,
-];
-
+/// Dialog that lists every tag, with totals, and lets the user add or
+/// edit one.
 class TagManagerDialog extends ConsumerWidget {
+  /// Creates the tag manager dialog.
   const TagManagerDialog({super.key});
 
   @override
@@ -81,9 +66,12 @@ class TagManagerDialog extends ConsumerWidget {
   }
 }
 
+/// Create-or-edit dialog for a single tag.
 class TagEditDialog extends ConsumerStatefulWidget {
+  /// Opens the dialog for [tag], or for a new tag when omitted.
   const TagEditDialog({super.key, this.tag});
 
+  /// Existing tag to edit; null creates a new one.
   final Tag? tag;
 
   @override
@@ -101,7 +89,7 @@ class _TagEditDialogState extends ConsumerState<TagEditDialog> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.tag?.name ?? '');
-    _color = widget.tag?.color ?? _palette.first;
+    _color = widget.tag?.color ?? kAutoTagColors.first;
     _parentId = widget.tag?.parentId;
   }
 
@@ -173,7 +161,7 @@ class _TagEditDialogState extends ConsumerState<TagEditDialog> {
               spacing: 8,
               runSpacing: 8,
               children: [
-                for (final color in _palette)
+                for (final color in kAutoTagColors)
                   GestureDetector(
                     onTap: () => setState(() => _color = color),
                     child: CircleAvatar(

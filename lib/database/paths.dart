@@ -15,4 +15,5 @@ Directory dataDirectory() {
   return Directory(p.join(base, 'clockwork'));
 }
 
+/// Resolves the SQLite file the GUI and CLI share on desktop.
 File databaseFile() => File(p.join(dataDirectory().path, 'clockwork.db'));

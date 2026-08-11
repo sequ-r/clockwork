@@ -51,6 +51,7 @@ final taskHoursProvider = Provider<AsyncValue<Map<int, Duration>>>((ref) {
   return ref.watch(_taskEntriesProvider(key));
 });
 
+/// Auto-disposing helper: lifetime totals per task-id for a single key.
 final _taskEntriesProvider = StreamProvider.family
     .autoDispose<Map<int, Duration>, String>((ref, taskIdsKey) {
       final taskIds = taskIdsKey.split(',').map(int.parse);

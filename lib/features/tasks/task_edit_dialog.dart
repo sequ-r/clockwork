@@ -7,9 +7,12 @@ import '../../database/database.dart';
 import '../../database/dates.dart';
 import '../../providers/providers.dart';
 
+/// Edit dialog for a single task: title, tag, date and notes.
 class TaskEditDialog extends ConsumerStatefulWidget {
+  /// Opens the dialog for [task].
   const TaskEditDialog({super.key, required this.task});
 
+  /// The task being edited.
   final Task task;
 
   @override

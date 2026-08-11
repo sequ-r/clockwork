@@ -16,6 +16,7 @@ String resolvedAssetPath(String asset) {
   return p.join(exeDir, 'data', 'flutter_assets', asset);
 }
 
+/// Singleton tray service. Created once by the framework.
 final trayServiceProvider = Provider<TrayService>((ref) {
   final service = TrayService(ref);
   ref.onDispose(service.dispose);
@@ -24,6 +25,7 @@ final trayServiceProvider = Provider<TrayService>((ref) {
 
 /// Manages the system tray icon and its quick-add action.
 class TrayService with TrayListener {
+  /// Creates the service. Use [trayServiceProvider] to obtain an instance.
   TrayService(this._ref);
 
   final Ref _ref;
@@ -34,6 +36,12 @@ class TrayService with TrayListener {
       (Platform.isLinux || Platform.isMacOS || Platform.isWindows) &&
       !Platform.environment.containsKey('FLUTTER_TEST');
 
+  /// Initializes the tray icon and menu.
+  ///
+  /// Safe to call repeatedly: a successful init flips an internal guard
+  /// and subsequent calls become no-ops. On failure the exception is
+  /// logged via `dart:developer` and rethrown so the caller can decide
+  /// whether to abort, leaving the guard unset so retries are possible.
   Future<void> init() async {
     if (!isSupported || _initialized) return;
     try {
@@ -56,6 +64,7 @@ class TrayService with TrayListener {
     }
   }
 
+  /// Removes the tray listener. Safe to call even if [init] never ran.
   void dispose() {
     if (_initialized) trayManager.removeListener(this);
   }

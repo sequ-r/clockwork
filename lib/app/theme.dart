@@ -18,7 +18,7 @@ export 'tokens.dart';
 /// Light theme: Adwaita-styled Material 3 colors.
 ThemeData buildLightTheme() {
   final scheme = ColorScheme.fromSeed(
-    seedColor: Color(kSeedColorArgb),
+    seedColor: const Color(kSeedColorArgb),
     brightness: Brightness.light,
   );
   return _buildTheme(scheme);
@@ -27,7 +27,7 @@ ThemeData buildLightTheme() {
 /// Dark theme: Adwaita-styled Material 3 colors.
 ThemeData buildDarkTheme() {
   final scheme = ColorScheme.fromSeed(
-    seedColor: Color(kSeedColorArgb),
+    seedColor: const Color(kSeedColorArgb),
     brightness: Brightness.dark,
   );
   return _buildTheme(scheme);

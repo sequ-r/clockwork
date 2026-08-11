@@ -17,8 +17,13 @@ final databaseProvider = Provider<ClockworkDatabase>((ref) {
   return db;
 });
 
+/// Data-access object for the `tags` table.
 final tagDaoProvider = Provider((ref) => ref.watch(databaseProvider).tagDao);
+
+/// Data-access object for the `tasks` table.
 final taskDaoProvider = Provider((ref) => ref.watch(databaseProvider).taskDao);
+
+/// Data-access object for the `time_entries` table.
 final timeEntryDaoProvider = Provider(
   (ref) => ref.watch(databaseProvider).timeEntryDao,
 );
