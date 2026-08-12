@@ -1,0 +1,24 @@
+# build.yaml — drift_dev configuration for Clockwork.
+#
+# `schema_dir` and `test_dir` configure where schema snapshots and
+# migration-test helpers land. Defaults are drift_schemas/ and test/drift/.
+# `databases` maps a logical name to the entry-point that drift_dev should
+# analyse when generating schema-version utilities. The values match
+# lib/database/database.dart, which holds the @DriftDatabase annotation.
+#
+# The standalone `dart run drift_dev schema dump` CLI is currently broken
+# against drift 2.34.3 (drift_dev 2.34.0 references drift3-preview APIs
+# that drift 2.34.3 reorganised). Until drift_dev is upgraded (Finding A
+# blocks 2.34.5, which needs analyzer ^13), schema snapshots are produced
+# by `tool/dump_schema.dart`, which writes a portable JSON dump from a
+# live in-memory database.
+
+targets:
+  $default:
+    builders:
+      drift_dev:
+        options:
+          schema_dir: drift_schemas
+          test_dir: test/drift
+          databases:
+            clockwork: lib/database/database.dart

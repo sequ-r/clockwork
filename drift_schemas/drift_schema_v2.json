@@ -1,0 +1,71 @@
+{
+  "format_version": 1,
+  "database": "ClockworkDatabase",
+  "schema_version": 2,
+  "objects": {
+    "table": [
+      {
+        "type": "table",
+        "name": "tags",
+        "tbl_name": "tags",
+        "sql": "CREATE TABLE \"tags\" (\"id\" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, \"name\" TEXT NOT NULL, \"color\" INTEGER NOT NULL, \"parent_id\" INTEGER NULL REFERENCES tags (id) ON DELETE SET NULL)"
+      },
+      {
+        "type": "table",
+        "name": "tasks",
+        "tbl_name": "tasks",
+        "sql": "CREATE TABLE \"tasks\" (\"id\" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, \"title\" TEXT NOT NULL, \"date\" TEXT NOT NULL, \"done\" INTEGER NOT NULL DEFAULT 0 CHECK (\"done\" IN (0, 1)), \"tag_id\" INTEGER NULL REFERENCES tags (id) ON DELETE SET NULL, \"notes\" TEXT NULL)"
+      },
+      {
+        "type": "table",
+        "name": "time_entries",
+        "tbl_name": "time_entries",
+        "sql": "CREATE TABLE \"time_entries\" (\"id\" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, \"tag_id\" INTEGER NULL REFERENCES tags (id) ON DELETE SET NULL, \"task_id\" INTEGER NULL REFERENCES tasks (id) ON DELETE SET NULL, \"date\" TEXT NOT NULL, \"minutes\" INTEGER NOT NULL, \"notes\" TEXT NULL)"
+      }
+    ]
+  },
+  "foreign_keys": {
+    "tags": [
+      {
+        "id": 0,
+        "seq": 0,
+        "table": "tags",
+        "from": "parent_id",
+        "to": "id",
+        "on_update": "NO ACTION",
+        "on_delete": "SET NULL"
+      }
+    ],
+    "tasks": [
+      {
+        "id": 0,
+        "seq": 0,
+        "table": "tags",
+        "from": "tag_id",
+        "to": "id",
+        "on_update": "NO ACTION",
+        "on_delete": "SET NULL"
+      }
+    ],
+    "time_entries": [
+      {
+        "id": 0,
+        "seq": 0,
+        "table": "tasks",
+        "from": "task_id",
+        "to": "id",
+        "on_update": "NO ACTION",
+        "on_delete": "SET NULL"
+      },
+      {
+        "id": 1,
+        "seq": 0,
+        "table": "tags",
+        "from": "tag_id",
+        "to": "id",
+        "on_update": "NO ACTION",
+        "on_delete": "SET NULL"
+      }
+    ]
+  }
+}

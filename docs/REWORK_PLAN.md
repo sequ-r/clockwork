@@ -168,6 +168,35 @@ peer providers) but not for the drift layer. So:
   remove. No functional gap: every consumer in the codebase already
   uses the typed Riverpod 3 read/watch API.
 
+### Finding G: `drift_dev` CLI does not build against drift 2.34.3
+
+`drift_dev` 2.34.0's `lib/src/services/schema/verifier_common.dart`
+imports `drift_dev/src/...` paths that call
+`drift3_preview/.../GeneratedDatabase` methods (`schema`,
+`allSchemaEntities`) that drift 2.34.3 reorganised. Running
+`dart run drift_dev schema dump` fails with:
+
+```
+_GenerateFromScratchDrift3 is missing implementations for these
+members:
+ - GeneratedDatabase.schema
+Try to either ...
+```
+
+`drift_dev` 2.34.5 fixes the call sites but requires `analyzer ^13`,
+which Finding A blocks. The `build_runner build` pipeline is
+unaffected — `database.g.dart` still generates correctly.
+
+**Consequence for Phase 5.** The `dart run drift_dev schema dump` and
+`schema steps` CLI commands are unavailable. Phase 5 instead ships a
+small `tool/dump_schema.dart` that opens an in-memory `ClockworkDatabase`,
+queries `sqlite_master` plus `PRAGMA foreign_key_list`, and writes a
+portable JSON dump into `drift_schemas/drift_schema_v<N>.json`. The
+shape is intentionally simpler than drift_dev's wire format (flat table
+list, no DSL features, no view/trigger DDL split) — it is just enough
+to round-trip the schema through a migration test. Revisit when
+drift_dev upgrades past the analyzer ^13 ceiling.
+
 ---
 
 ## 3. Current state assessment
@@ -397,11 +426,24 @@ shipped for the layer where it works. Revisit when Finding F is fixed.
 
 Highest-risk phase. Snapshots and tests come before the migration.
 
-5.1. Add `build.yaml` enabling drift schema snapshots.
+5.1. Add `build.yaml` enabling drift schema snapshots. — *Done.*
+     `build.yaml` declares `schema_dir: drift_schemas`, `test_dir:
+     test/drift`, and the `clockwork` database mapping. The drift_dev
+     CLI itself does not build (Finding G); the build builder is
+     unaffected.
 5.2. **[!]** Dump the current v2 schema to `drift_schemas/`. Only v2 can be
      dumped; reconstruct v1 by hand from `_migrateToDurationEntries` if a
-     v1 test is wanted.
+     v1 test is wanted. — *Done via `tool/dump_schema.dart` (Finding G).*
+     Output: `drift_schemas/drift_schema_v2.json` — a flat
+     `sqlite_master` + `PRAGMA foreign_key_list` representation. v1
+     reconstruction deferred (the existing v1->v2 path is not exercised
+     in CI; tests cover the v2 baseline shape instead).
 5.3. Write migration tests for v2 that pass **before** any schema change.
+     — *Done.* `test/drift/migration_v2_test.dart` locks down the
+     baseline: `schemaVersion == 2`, the three table names, the
+     self-referencing `tags.parent_id` FK with `SET NULL`, the v2
+     `time_entries` column shape (`date`, `minutes`, no `start`/`end`),
+     and the existence of the snapshot file.
 5.4. Define new tables:
      - `clients(id, name, color, archived, notes)`
      - `projects(id, name, color, client_id?, parent_id?, archived)`
@@ -409,23 +451,35 @@ Highest-risk phase. Snapshots and tests come before the migration.
      - `task_labels(task_id, label_id)` join
      - `settings(key, value)`
      - `integration_accounts(id, kind, display_name, config_json, enabled)`
+     — *Pending.* Tracked for the next session.
 5.5. Alter `tasks`: add `project_id?`, `client_id?`, `jira_issue_key?`,
      `estimate_minutes?`, `created_at`, `updated_at`. Keep `tag_id` during
-     migration, drop it at the end.
+     migration, drop it at the end. — *Pending.*
 5.6. Alter `time_entries`: add `project_id?`, `client_id?`, `created_at`,
-     `updated_at`, `source` (manual / shortcut / import).
+     `updated_at`, `source` (manual / shortcut / import). — *Pending.*
 5.7. Add indices on the hot paths: `time_entries(date)`, `tasks(date)`,
-     `time_entries(task_id)`, `projects(client_id)`.
+     `time_entries(task_id)`, `projects(client_id)`. — *Pending.*
 5.8. **[!]** Write the v2->v3 migration. Root tags become projects; child tags
      become projects with `parent_id`; `tasks.tag_id` and
-     `time_entries.tag_id` map to `project_id`.
+     `time_entries.tag_id` map to `project_id`. — *Pending.*
 5.9. **[!]** Wrap table rewrites in `PRAGMA foreign_keys = OFF` plus
      `defer_foreign_keys`. The existing v1->v2 migration omits this and only
      survives because it runs before `beforeOpen`. Any rewrite of `tags` or
-     `tasks` now has inbound references.
-5.10. Call the Phase 0 backup helper before migrating.
-5.11. Write v2->v3 migration tests over a seeded v2 database.
+     `tasks` now has inbound references. — *Pending.*
+5.10. Call the Phase 0 backup helper before migrating. — *Done.*
+     `lib/database/backup.dart` exposes `backupDatabase(File)` and
+     `pruneBackups(...)`. `openDatabase()` and `openDatabaseAt()` now
+     peek at `PRAGMA user_version` via `package:sqlite3` (read-only)
+     and call the backup helper before handing the file to drift.
+     `currentSchemaVersion` is a top-level constant kept in lockstep
+     with `ClockworkDatabase.schemaVersion`. Backed by
+     `test/database_backup_test.dart` (3 cases).
+5.11. Write v2->v3 migration tests over a seeded v2 database. — *Pending.*
+     Will follow 5.8 / 5.9.
 5.12. Regenerate and verify `streamUpdateRules` cover the new FKs.
+     — *Pending.* Stream update rules are a drift runtime feature; they
+     follow automatically from `@DriftDatabase(tables: [...])`.
+     Verification deferred to the schema-redesign step.
 
 ### Phase 6 — Repository layer
 
