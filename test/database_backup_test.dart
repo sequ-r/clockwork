@@ -5,7 +5,7 @@ import 'dart:io';
 
 import 'package:clockwork/database/backup.dart';
 import 'package:path/path.dart' as p;
-import 'package:test/test.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('backupDatabase', () {
@@ -44,7 +44,7 @@ void main() {
     });
 
     test('prunes to the retention limit', () {
-      final src = File(p.join(tmp.path, 'src.db'))..writeAsBytesSync(<int>[0]);
+      File(p.join(tmp.path, 'src.db')).writeAsBytesSync(<int>[0]);
       final backupDir = Directory(p.join(tmp.path, 'backups'))..createSync();
 
       // Create 8 backups, then take 2 more with retention=3.
