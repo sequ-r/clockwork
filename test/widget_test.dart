@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:clockwork/main.dart';
 import 'package:clockwork/database/database.dart';
 import 'package:clockwork/database/dates.dart';
-import 'package:clockwork/providers/providers.dart';
+import 'package:clockwork/core/providers/database.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 

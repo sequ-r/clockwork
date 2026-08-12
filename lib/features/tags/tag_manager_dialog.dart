@@ -5,7 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/tokens.dart';
 import '../../database/database.dart';
 import '../../database/dates.dart';
-import '../../providers/providers.dart';
+import '../../core/providers/database.dart';
+import '../../core/providers/time_entries.dart';
 
 /// Dialog that lists every tag, with totals, and lets the user add or
 /// edit one.

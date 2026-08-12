@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme.dart';
 import '../../../database/dates.dart';
-import '../../../providers/providers.dart';
+import '../../../core/providers/tasks.dart';
+import '../../../core/providers/time_entries.dart';
+import '../../../core/providers/ui_state.dart';
 
 /// Month overview: calendar grid with per-day totals and task counts.
 class MonthView extends ConsumerWidget {

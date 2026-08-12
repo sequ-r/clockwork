@@ -5,7 +5,10 @@ import 'package:intl/intl.dart';
 import '../../../app/theme.dart';
 import '../../../database/database.dart';
 import '../../../database/dates.dart';
-import '../../../providers/providers.dart';
+import '../../../core/providers/database.dart';
+import '../../../core/providers/tasks.dart';
+import '../../../core/providers/time_entries.dart';
+import '../../../core/providers/ui_state.dart';
 
 /// Renders a time entry as `1h 30m - notes` (notes omitted when empty).
 String _entryLabel(TimeEntry entry) {

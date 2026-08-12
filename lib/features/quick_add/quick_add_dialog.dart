@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../database/database.dart';
 import '../../database/dates.dart';
-import '../../providers/providers.dart';
+import '../../core/providers/database.dart';
 
 /// Minimal quick-add widget opened from the system tray: just the amount
 /// of hours to add to today and a plus button.

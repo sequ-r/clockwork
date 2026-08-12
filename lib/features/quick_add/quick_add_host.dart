@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../providers/providers.dart';
+import '../../core/providers/ui_state.dart';
 import 'quick_add_dialog.dart';
 
 /// Listens to [quickAddRequestProvider] and shows a [QuickAddDialog] each

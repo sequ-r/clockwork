@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../providers/providers.dart';
+import '../../../core/providers/database.dart';
+import '../../../core/providers/ui_state.dart';
 
 /// Horizontal filter strip that lets the user scope today's task list
 /// to a single tag, or clear the filter.

@@ -5,7 +5,10 @@ import 'package:intl/intl.dart';
 
 import '../../database/database.dart';
 import '../../database/dates.dart';
-import '../../providers/providers.dart';
+import '../../core/providers/database.dart';
+import '../../core/providers/tasks.dart';
+import '../../core/providers/time_entries.dart';
+import '../../core/providers/ui_state.dart';
 import '../tasks/task_edit_dialog.dart';
 
 /// Today pane: welcome header, task list with hours per task, and the

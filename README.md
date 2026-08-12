@@ -96,8 +96,12 @@ lib/
 
   services/
     tray_service.dart  # system tray integration
-  providers/
-    providers.dart  # backwards-compat barrel re-exporting core/providers
+  core/providers/
+    database.dart      # Provider<ClockworkDatabase> + DAOs + tags stream
+    tasks.dart         # StreamProvider.family for tasks/entries per day
+    time_entries.dart  # totals, dailyTotals, taskHours, visibleTagTotals
+    ui_state.dart      # code-generated @riverpod notifiers (UI state)
+                       #   + ui_state.g.dart
 ```
 
 The CLI lives in `bin/clockwork.dart` and shares the data layer (database,

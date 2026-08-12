@@ -114,6 +114,60 @@ document it. Use plain `dart run build_runner build`.
 unconditionally links it. The runner is also pure GTK3 source. The probe is
 dead code that breaks configuration on any gtk4 machine.
 
+### Finding F: `riverpod_generator` cannot resolve types from `part` files
+
+Drift generates its schema classes (`Tag`, `Task`, `TimeEntry`, `TagDao`,
+…) inside `lib/database/database.g.dart`, which is declared as
+`part of 'database.dart'` — that relationship is mandatory for drift's
+builder. `riverpod_generator` 4.0.4 (the highest version that resolves
+with Finding A's pinned analyzer 12.1.0) calls `DartType.toCode()` on
+every resolved type, and that call throws `InvalidTypeException: The type
+is invalid and cannot be converted to code.` for any `InterfaceType`
+whose element is declared in a `part of` file. The exception is raised
+from `riverpod_generator-4.0.4/lib/src/templates/parameters.dart:117`
+and surfaces in the build log as:
+
+```
+E riverpod_generator on lib/core/providers/database.dart:
+  InvalidTypeException: The type is invalid and cannot be converted to code.
+```
+
+Verified reproductions (all throw):
+
+- `@riverpod List<Tag> tags(Ref ref) => const [];` (Tag is a `part of`)
+- `@riverpod Tag probeTag(Ref ref) => throw …;`
+- `@riverpod List<PartThing> probe(Ref ref) => const [];` where
+  `PartThing` is declared in a plain `part of 'schema.dart'` file
+  (hand-written, no drift involved)
+
+A hand-written `class MyData extends DataClass implements Insertable<…>`
+in a **non-part** file resolves and generates cleanly, so the trigger is
+specifically the `part of` declaration site — not drift itself, and not
+the `DataClass` hierarchy.
+
+`riverpod_generator` 4.0.5+ pulls in `analyzer ^13`, which Finding A
+proved unresolvable against Flutter 3.44.9's bundled `flutter_test`
+transitive pins. Revisit when Flutter's `test_api` advances.
+
+**Consequence for Phase 4.** Codegen is restricted to providers whose
+return type and `ref.watch`-watched types are declared in ordinary
+(non-part) files. That holds for `lib/core/providers/ui_state.dart`
+(`DateTime`, `CalendarView` enum, `int?`, `List<String>`, generated
+peer providers) but not for the drift layer. So:
+
+- `ui_state.dart` — code-generated (`@Riverpod(keepAlive: true) class Foo`
+  + one `@Riverpod(keepAlive: true) visibleDateKeys(Ref ref)` function).
+  Generates `ui_state.g.dart` successfully; consumers updated; barrel
+  `lib/providers/providers.dart` deleted; all 11 call sites import the
+  focused modules.
+- `database.dart`, `tasks.dart`, `time_entries.dart` — kept as plain
+  `Provider` / `StreamProvider` / `Provider.family` declarations from
+  Phase 2/3. They deliver the same Riverpod 3 idioms (typed reads via
+  `ref.watch`, mutation via dedicated notifier classes where they
+  already exist) without the boilerplate that codegen would otherwise
+  remove. No functional gap: every consumer in the codebase already
+  uses the typed Riverpod 3 read/watch API.
+
 ---
 
 ## 3. Current state assessment
@@ -304,18 +358,40 @@ Independent of the rework; each is a real defect found during analysis.
 
 4.1. Read the v2->v3 migration notes; the `Ref` type is now unified.
 4.2. Convert `core/providers/database.dart` to `@riverpod`, giving the DAO
-     providers explicit types (currently inferred).
+     providers explicit types (currently inferred). — *Blocked by Finding F.*
+     Drift's schema classes live in a `part of` file that
+     `riverpod_generator` 4.0.4 cannot resolve. Kept manual; Riverpod 3
+     typed reads are already in place from Phase 2.
 4.3. Convert `ui_state.dart`. The `StateProvider`s become `@riverpod` classes
-     with named mutation methods instead of `.state =` writes.
+     with named mutation methods instead of `.state =` writes. — *Done.*
+     `SelectedDate`, `CalendarAnchor`, `CalendarViewMode`, `TagFilter`,
+     `QuickAddRequest`, and `HomeTab` are now `@Riverpod(keepAlive: true)
+     class … extends _$…`. `visibleDateKeys` becomes
+     `@Riverpod(keepAlive: true) List<String> visibleDateKeys(Ref ref)`.
 4.4. Convert `tasks.dart` and `time_entries.dart`; `.family` becomes
-     annotated parameters.
+     annotated parameters. — *Blocked by Finding F.* Kept manual.
 4.5. Replace the `String`-joined key hack in `_taskEntriesProvider` with a
-     typed parameter now that codegen handles equality.
+     typed parameter now that codegen handles equality. — *Deferred.*
+     Requires codegen on `time_entries.dart` (Finding F). Tracked in
+     the risk register.
 4.6. Move `_HomeShellState._tab` into a provider so the tab survives resize.
-4.7. **[v]** Run `dart run build_runner build` (no removed flag).
+     — *Done.* `HomeTab` notifier added to `ui_state.dart`;
+     `_NarrowLayout` is now a `ConsumerWidget` keyed on
+     `homeTabProvider`. (Note: the field lived in `_NarrowLayoutState`,
+     not `_HomeShellState` as the original plan text said; same intent.)
+4.7. **[v]** Run `dart run build_runner build` (no removed flag). — *Done.*
+     Generates `ui_state.g.dart` cleanly. Drift layer is untouched by
+     riverpod_generator because it carries no `@riverpod` annotations.
 4.8. Delete the `lib/providers/providers.dart` compatibility barrel and
-     update imports.
-4.9. Update `test/widget_test.dart` overrides for v3.
+     update imports. — *Done.* 11 call sites in `lib/` + 1 in `test/`
+     now import the focused modules directly. `dart analyze` clean,
+     16 tests pass.
+4.9. Update `test/widget_test.dart` overrides for v3. — *No change needed.*
+     The existing `databaseProvider.overrideWithValue(db)` still works
+     because the manual `databaseProvider` has the same API surface.
+
+Net effect: the project's Riverpod 3 migration is complete; codegen is
+shipped for the layer where it works. Revisit when Finding F is fixed.
 
 ### Phase 5 — Schema v3
 

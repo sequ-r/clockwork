@@ -7,7 +7,8 @@ import 'package:path/path.dart' as p;
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 
-import '../providers/providers.dart';
+import '../core/providers/database.dart';
+import '../core/providers/ui_state.dart';
 
 /// Resolves a bundled asset to an absolute path, as required by the
 /// native tray APIs on desktop.

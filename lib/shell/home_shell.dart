@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
 
+import '../core/providers/ui_state.dart';
 import '../features/calendar/calendar_panel.dart';
 import '../features/quick_add/add_time_dialog.dart';
 import '../features/quick_add/quick_add_host.dart';
@@ -103,30 +104,25 @@ class _HomeShellState extends ConsumerState<HomeShell> with WindowListener {
   }
 }
 
-class _NarrowLayout extends StatefulWidget {
+class _NarrowLayout extends ConsumerWidget {
   const _NarrowLayout();
 
   @override
-  State<_NarrowLayout> createState() => _NarrowLayoutState();
-}
-
-class _NarrowLayoutState extends State<_NarrowLayout> {
-  int _tab = 0;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tab = ref.watch(homeTabProvider);
     return Column(
       children: [
         const TagFilterBar(),
         Expanded(
           child: IndexedStack(
-            index: _tab,
+            index: tab,
             children: const [TodayScreen(), CalendarPanel()],
           ),
         ),
         NavigationBar(
-          selectedIndex: _tab,
-          onDestinationSelected: (index) => setState(() => _tab = index),
+          selectedIndex: tab,
+          onDestinationSelected: (index) =>
+              ref.read(homeTabProvider.notifier).set(index),
           destinations: const [
             NavigationDestination(icon: Icon(Icons.checklist), label: 'Today'),
             NavigationDestination(

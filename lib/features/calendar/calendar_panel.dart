@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../database/dates.dart';
-import '../../providers/providers.dart';
+import '../../core/providers/ui_state.dart';
 import 'widgets/month_view.dart';
 import 'widgets/week_view.dart';
 
@@ -14,7 +14,7 @@ class CalendarPanel extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final view = ref.watch(calendarViewProvider);
+    final view = ref.watch(calendarViewModeProvider);
     final anchor = ref.watch(calendarAnchorProvider);
 
     final rangeLabel = switch (view) {
@@ -43,7 +43,7 @@ class CalendarPanel extends ConsumerWidget {
                 ],
                 selected: {view},
                 onSelectionChanged: (selection) => ref
-                    .read(calendarViewProvider.notifier)
+                    .read(calendarViewModeProvider.notifier)
                     .set(selection.first),
               ),
               IconButton(

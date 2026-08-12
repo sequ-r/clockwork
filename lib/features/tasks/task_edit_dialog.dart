@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../database/database.dart';
 import '../../database/dates.dart';
-import '../../providers/providers.dart';
+import '../../core/providers/database.dart';
 
 /// Edit dialog for a single task: title, tag, date and notes.
 class TaskEditDialog extends ConsumerStatefulWidget {

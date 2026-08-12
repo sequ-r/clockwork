@@ -1,14 +1,15 @@
 /// UI-level state: which day is selected, which calendar view is shown,
 /// which tag is filtered.
 ///
-/// Implemented as plain `Notifier`s so that reads and writes both go
-/// through typed methods. The `@riverpod` codegen migration in Phase 4
-/// will replace these with code-generated providers and `Ref` instances.
+/// Implemented as code-generated `@riverpod` notifiers. Reads go through
+/// the typed providers; writes go through the generated `.notifier`.
 library;
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../database/dates.dart';
+
+part 'ui_state.g.dart';
 
 /// Daily working-hours limit after which a warning is shown.
 const workingHoursLimit = Duration(hours: 8);
@@ -31,7 +32,8 @@ DateTime _todayMidnight() {
 }
 
 /// Currently selected day, shown in the left pane.
-class SelectedDate extends Notifier<DateTime> {
+@Riverpod(keepAlive: true)
+class SelectedDate extends _$SelectedDate {
   @override
   DateTime build() => _todayMidnight();
 
@@ -41,13 +43,9 @@ class SelectedDate extends Notifier<DateTime> {
   }
 }
 
-/// Provider for the currently selected day.
-final selectedDateProvider = NotifierProvider<SelectedDate, DateTime>(
-  SelectedDate.new,
-);
-
 /// Anchor date of the visible calendar in the right pane.
-class CalendarAnchor extends Notifier<DateTime> {
+@Riverpod(keepAlive: true)
+class CalendarAnchor extends _$CalendarAnchor {
   @override
   DateTime build() => _todayMidnight();
 
@@ -58,12 +56,8 @@ class CalendarAnchor extends Notifier<DateTime> {
 }
 
 /// Active calendar view of the right pane.
-final calendarAnchorProvider = NotifierProvider<CalendarAnchor, DateTime>(
-  CalendarAnchor.new,
-);
-
-/// Active calendar view of the right pane.
-class CalendarViewMode extends Notifier<CalendarView> {
+@Riverpod(keepAlive: true)
+class CalendarViewMode extends _$CalendarViewMode {
   @override
   CalendarView build() => CalendarView.week;
 
@@ -71,13 +65,9 @@ class CalendarViewMode extends Notifier<CalendarView> {
   void set(CalendarView value) => state = value;
 }
 
-/// Provider for the active calendar view (week or month).
-final calendarViewProvider = NotifierProvider<CalendarViewMode, CalendarView>(
-  CalendarViewMode.new,
-);
-
 /// Selected tag filter; null means "all".
-class TagFilter extends Notifier<int?> {
+@Riverpod(keepAlive: true)
+class TagFilter extends _$TagFilter {
   @override
   int? build() => null;
 
@@ -85,15 +75,13 @@ class TagFilter extends Notifier<int?> {
   void set(int? value) => state = value;
 }
 
-/// Provider for the active tag filter; null means no filter.
-final tagFilterProvider = NotifierProvider<TagFilter, int?>(TagFilter.new);
-
 /// Increments whenever the tray requests the quick-add dialog.
 ///
 /// Using a counter (rather than a boolean) makes the event idempotent:
 /// every tray click produces a fresh event even if the dialog was already
 /// shown and dismissed.
-class QuickAddRequest extends Notifier<int> {
+@Riverpod(keepAlive: true)
+class QuickAddRequest extends _$QuickAddRequest {
   @override
   int build() => 0;
 
@@ -101,17 +89,26 @@ class QuickAddRequest extends Notifier<int> {
   void request() => state = state + 1;
 }
 
-/// Provider that emits a fresh event each time the tray wants to open
-/// the quick-add dialog.
-final quickAddRequestProvider = NotifierProvider<QuickAddRequest, int>(
-  QuickAddRequest.new,
-);
+/// Index of the active tab in the narrow layout.
+///
+/// Hoisted into a provider so the selection survives the wide→narrow
+/// layout transition (which otherwise remounts the tab widget and resets
+/// the index).
+@Riverpod(keepAlive: true)
+class HomeTab extends _$HomeTab {
+  @override
+  int build() => 0;
+
+  /// Switches to [index] (0 = Today, 1 = Calendar).
+  void set(int index) => state = index;
+}
 
 /// Day-keys covered by the visible calendar (week or month).
-final visibleDateKeysProvider = Provider<List<String>>((ref) {
+@Riverpod(keepAlive: true)
+List<String> visibleDateKeys(Ref ref) {
   final anchor = ref.watch(calendarAnchorProvider);
-  return switch (ref.watch(calendarViewProvider)) {
+  return switch (ref.watch(calendarViewModeProvider)) {
     CalendarView.week => weekKeys(anchor),
     CalendarView.month => monthKeys(anchor),
   };
-});
+}

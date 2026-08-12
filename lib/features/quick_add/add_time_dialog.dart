@@ -5,7 +5,9 @@ import 'package:intl/intl.dart';
 
 import '../../database/database.dart';
 import '../../database/dates.dart';
-import '../../providers/providers.dart';
+import '../../core/providers/database.dart';
+import '../../core/providers/tasks.dart';
+import '../../core/providers/ui_state.dart';
 
 /// Main "+ button" workflow: choose hours to add to the day, attach an
 /// optional comment and tag, then confirm.
