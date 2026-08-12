@@ -197,6 +197,36 @@ list, no DSL features, no view/trigger DDL split) — it is just enough
 to round-trip the schema through a migration test. Revisit when
 drift_dev upgrades past the analyzer ^13 ceiling.
 
+### Finding H: `tray_manager` Linux build requires `libayatana-appindicator`
+
+`flutter build linux` fails with a fatal CMake error when the system
+has neither `ayatana-appindicator3-0.1` nor `appindicator3-0.1` —
+`tray_manager-0.5.3`'s `linux/CMakeLists.txt` does `pkg_check_modules`
+and aborts on miss. On CachyOS / Arch the package is `libayatana-appindicator`,
+not in the default install set.
+
+There is also a secondary obstacle: once the headers are present,
+`tray_manager-0.5.3` calls `app_indicator_new` which
+libayatana-appindicator ≥ 0.6.0 marks deprecated, and the Flutter
+plugin template compiles with `-Werror`, turning the warning into a
+build error.
+
+**Mitigation.** `scripts/setup_linux_build.sh` fetches the three
+required packages (`ayatana-ido`, `libayatana-indicator`,
+`libayatana-appindicator`) from the configured pacman mirror into
+`~/.local/prefix/` (no `sudo`), rewrites the `.pc` files so
+pkg-config resolves to the user prefix, and patches the tray_manager
+CMakeLists.txt in the pub cache to demote the deprecation. The script
+prints the three env vars to export (`PKG_CONFIG_PATH`,
+`CMAKE_PREFIX_PATH`, `LD_LIBRARY_PATH`) before `flutter build linux`.
+It also exposes `--env` for `eval`. The pub-cache patch is
+idempotent and survives `flutter pub get` as long as the package
+version stays pinned; re-running the script reapplies it after a
+cache repair.
+
+CI does not yet consume this — see the Phase 18 follow-up. For local
+builds, run `scripts/setup_linux_build.sh` once after a fresh clone.
+
 ---
 
 ## 3. Current state assessment
