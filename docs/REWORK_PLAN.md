@@ -481,14 +481,23 @@ Highest-risk phase. Snapshots and tests come before the migration.
      - `task_labels(task_id, label_id)` join
      - `settings(key, value)`
      - `integration_accounts(id, kind, display_name, config_json, enabled)`
-     — *Pending.* Tracked for the next session.
+     — *Design drafted in `lib/database/v3_tables.dart` (not wired into
+     `@DriftDatabase` yet — see 5.8). Awaiting review before the
+     irreversible migration.*
 5.5. Alter `tasks`: add `project_id?`, `client_id?`, `jira_issue_key?`,
      `estimate_minutes?`, `created_at`, `updated_at`. Keep `tag_id` during
-     migration, drop it at the end. — *Pending.*
+     migration, drop it at the end. — *Design drafted in
+     `lib/database/v3_tables.dart`; `tag_id` is retained in v3 as a
+     legacy nullable column so the v2 UI keeps compiling until Phases
+     10-12 migrate consumers. Drop happens in a later migration.*
 5.6. Alter `time_entries`: add `project_id?`, `client_id?`, `created_at`,
-     `updated_at`, `source` (manual / shortcut / import). — *Pending.*
+     `updated_at`, `source` (manual / shortcut / import). — *Design
+     drafted; same `tag_id` policy as tasks.*
 5.7. Add indices on the hot paths: `time_entries(date)`, `tasks(date)`,
-     `time_entries(task_id)`, `projects(client_id)`. — *Pending.*
+     `time_entries(task_id)`, `projects(client_id)`. — *To be added via
+     raw SQL in `onCreate` and the v2→v3 migration (drift's
+     `@TableIndex` annotation is available but the plan's explicit list
+     is small enough to handle in SQL).*
 5.8. **[!]** Write the v2->v3 migration. Root tags become projects; child tags
      become projects with `parent_id`; `tasks.tag_id` and
      `time_entries.tag_id` map to `project_id`. — *Pending.*
