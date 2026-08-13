@@ -103,6 +103,28 @@ class HomeTab extends _$HomeTab {
   void set(int index) => state = index;
 }
 
+/// Modes for standalone popup windows opened from the system tray.
+enum TrayPopupMode {
+  /// Normal main window view.
+  none,
+
+  /// Compact popup window for quick time entry.
+  quickAdd,
+
+  /// Compact popup window for managing projects.
+  manageProjects,
+}
+
+/// Active popup window mode opened from the system tray.
+@Riverpod(keepAlive: true)
+class ActiveTrayPopup extends _$ActiveTrayPopup {
+  @override
+  TrayPopupMode build() => TrayPopupMode.none;
+
+  /// Sets the active tray popup mode.
+  void set(TrayPopupMode mode) => state = mode;
+}
+
 /// Day-keys covered by the visible calendar (week or month).
 @Riverpod(keepAlive: true)
 List<String> visibleDateKeys(Ref ref) {

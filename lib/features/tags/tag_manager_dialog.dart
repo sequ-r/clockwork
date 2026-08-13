@@ -7,6 +7,7 @@ import '../../database/database.dart';
 import '../../database/dates.dart';
 import '../../core/providers/database.dart';
 import '../../core/providers/time_entries.dart';
+import '../../services/tray_service.dart';
 
 /// Dialog that lists every tag, with totals, and lets the user add or
 /// edit one.
@@ -21,12 +22,12 @@ class TagManagerDialog extends ConsumerWidget {
     final byId = {for (final t in tags) t.id: t};
 
     return AlertDialog(
-      title: const Text('Tags & projects'),
+      title: const Text('Projects'),
       content: SizedBox(
         width: 440,
         height: 420,
         child: tags.isEmpty
-            ? const Center(child: Text('No tags yet. Add one below.'))
+            ? const Center(child: Text('No projects yet. Add one below.'))
             : ListView(
                 children: [
                   for (final tag in tags)
@@ -56,7 +57,7 @@ class TagManagerDialog extends ConsumerWidget {
             context: context,
             builder: (_) => const TagEditDialog(),
           ),
-          child: const Text('Add tag'),
+          child: const Text('Add project'),
         ),
         FilledButton(
           onPressed: () => Navigator.pop(context),
@@ -135,7 +136,7 @@ class _TagEditDialogState extends ConsumerState<TagEditDialog> {
     final possibleParents = tags.where((t) => t.id != widget.tag?.id).toList();
 
     return AlertDialog(
-      title: Text(_isNew ? 'New tag' : 'Edit tag'),
+      title: Text(_isNew ? 'New project' : 'Edit project'),
       content: SizedBox(
         width: 400,
         child: Column(
@@ -186,6 +187,79 @@ class _TagEditDialogState extends ConsumerState<TagEditDialog> {
           child: const Text('Cancel'),
         ),
         FilledButton(onPressed: _save, child: const Text('Save')),
+      ],
+    );
+  }
+}
+
+/// Standalone popup view for managing projects from the system tray.
+class TagManagerPopupView extends ConsumerWidget {
+  /// Creates the project manager popup view.
+  const TagManagerPopupView({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tags = ref.watch(tagsProvider).value ?? [];
+    final totals = ref.watch(visibleTagTotalsProvider);
+    final byId = {for (final t in tags) t.id: t};
+
+    return Column(
+      children: [
+        Expanded(
+          child: tags.isEmpty
+              ? const Center(child: Text('No projects yet.'))
+              : ListView(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  children: [
+                    for (final tag in tags)
+                      ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: Color(tag.color),
+                          radius: 8,
+                        ),
+                        title: Text(tag.name),
+                        subtitle: tag.parentId == null
+                            ? null
+                            : Text('under ${byId[tag.parentId]?.name ?? '?'}'),
+                        trailing: totals[tag.id] == null
+                            ? null
+                            : Text(formatDuration(totals[tag.id]!)),
+                        onTap: () => showDialog<void>(
+                          context: context,
+                          builder: (_) => TagEditDialog(tag: tag),
+                        ),
+                      ),
+                  ],
+                ),
+        ),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(
+                color: Theme.of(context).colorScheme.outlineVariant,
+                width: 1,
+              ),
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              TextButton.icon(
+                onPressed: () => showDialog<void>(
+                  context: context,
+                  builder: (_) => const TagEditDialog(),
+                ),
+                icon: const Icon(Icons.add),
+                label: const Text('Add project'),
+              ),
+              FilledButton(
+                onPressed: () => ref.read(trayServiceProvider).closeTrayPopup(),
+                child: const Text('Done'),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }

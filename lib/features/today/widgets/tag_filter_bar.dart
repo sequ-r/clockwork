@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/providers/database.dart';
 import '../../../core/providers/ui_state.dart';
 
+import '../../../features/tags/tag_manager_dialog.dart';
+
 /// Horizontal filter strip that lets the user scope today's task list
 /// to a single tag, or clear the filter.
 class TagFilterBar extends ConsumerWidget {
@@ -43,6 +45,17 @@ class TagFilterBar extends ConsumerWidget {
                     ref.read(tagFilterProvider.notifier).set(tag.id),
               ),
             ),
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: ActionChip(
+              avatar: const Icon(Icons.settings_outlined, size: 16),
+              label: const Text('Manage projects'),
+              onPressed: () => showDialog<void>(
+                context: context,
+                builder: (_) => const TagManagerDialog(),
+              ),
+            ),
+          ),
         ],
       ),
     );

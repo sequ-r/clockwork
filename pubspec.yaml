@@ -19,7 +19,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.12.2
+  sdk: ^3.13.0
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -38,9 +38,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   drift: ^2.34.3
   drift_flutter: ^0.3.1
-  # Pinned: see docs/REWORK_PLAN.md "Finding A" for why 3.4.x does not resolve
-  # against Flutter 3.44.9's bundled flutter_test (analyzer pin conflict).
-  flutter_riverpod: 3.3.2
+  flutter_riverpod: ^3.4.2
   sqlite3: ^3.5.1
   riverpod_annotation: ^4.0.3
   path_provider: ^2.1.6
@@ -61,8 +59,7 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   drift_dev: ^2.34.0
   build_runner: ^2.15.1
-  # Pinned for the same reason as flutter_riverpod above.
-  riverpod_generator: 4.0.4
+  riverpod_generator: ^4.0.8
   riverpod_lint: ^3.1.4
 
 # For information on the generic Dart part of this file, see the

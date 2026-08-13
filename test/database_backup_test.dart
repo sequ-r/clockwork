@@ -49,9 +49,8 @@ void main() {
 
       // Create 8 backups, then take 2 more with retention=3.
       for (var i = 0; i < 8; i++) {
-        File(
-          p.join(backupDir.path, 'clockwork-2026-08-12T10-00-0$i.db'),
-        ).writeAsBytesSync(<int>[i]);
+        File(p.join(backupDir.path, 'clockwork-2026-08-12T10-00-0$i.db'))
+            .writeAsBytesSync(<int>[i]);
       }
       pruneBackups(backupDir, retention: 3);
 

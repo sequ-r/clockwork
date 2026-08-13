@@ -386,6 +386,64 @@ abstract class _$HomeTab extends $Notifier<int> {
   }
 }
 
+/// Active popup window mode opened from the system tray.
+
+@ProviderFor(ActiveTrayPopup)
+final activeTrayPopupProvider = ActiveTrayPopupProvider._();
+
+/// Active popup window mode opened from the system tray.
+final class ActiveTrayPopupProvider
+    extends $NotifierProvider<ActiveTrayPopup, TrayPopupMode> {
+  /// Active popup window mode opened from the system tray.
+  ActiveTrayPopupProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'activeTrayPopupProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$activeTrayPopupHash();
+
+  @$internal
+  @override
+  ActiveTrayPopup create() => ActiveTrayPopup();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(TrayPopupMode value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<TrayPopupMode>(value),
+    );
+  }
+}
+
+String _$activeTrayPopupHash() => r'4cea2c1ab6e6019127a51d65cc91b0ee5b0be99d';
+
+/// Active popup window mode opened from the system tray.
+
+abstract class _$ActiveTrayPopup extends $Notifier<TrayPopupMode> {
+  TrayPopupMode build();
+  @$mustCallSuper
+  @override
+  WhenComplete runBuild() {
+    final ref = this.ref as $Ref<TrayPopupMode, TrayPopupMode>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<TrayPopupMode, TrayPopupMode>,
+              TrayPopupMode,
+              Object?,
+              Object?
+            >;
+    return element.handleCreate(ref, build);
+  }
+}
+
 /// Day-keys covered by the visible calendar (week or month).
 
 @ProviderFor(visibleDateKeys)

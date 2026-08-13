@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:developer' as developer;
 import 'dart:io';
+import 'dart:ui' show Size;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
@@ -97,6 +98,7 @@ class TrayService with TrayListener {
     final menu = Menu(
       items: [
         MenuItem(key: 'quick-add', label: 'Add time...'),
+        MenuItem(key: 'manage-projects', label: 'Manage projects...'),
         MenuItem.separator(),
         MenuItem(key: 'show', label: 'Show Clockwork'),
         MenuItem(key: 'quit', label: 'Quit'),
@@ -109,9 +111,11 @@ class TrayService with TrayListener {
   void onTrayMenuItemClick(MenuItem menuItem) {
     switch (menuItem.key) {
       case 'quick-add':
-        unawaited(_openQuickAdd());
+        unawaited(openQuickAddPopup());
+      case 'manage-projects':
+        unawaited(openManageProjectsPopup());
       case 'show':
-        unawaited(_showMainWindow());
+        unawaited(showMainWindow());
       case 'quit':
         unawaited(_quit());
     }
@@ -119,17 +123,47 @@ class TrayService with TrayListener {
 
   @override
   void onTrayIconMouseDown() {
-    unawaited(_openQuickAdd());
+    unawaited(openQuickAddPopup());
   }
 
-  /// Shows the main window with the minimal quick-add dialog on top.
-  Future<void> _openQuickAdd() async {
-    await _showMainWindow();
-    final notifier = _ref.read(quickAddRequestProvider.notifier);
-    notifier.request();
+  /// Opens the quick add standalone popup window.
+  Future<void> openQuickAddPopup() async {
+    _ref.read(activeTrayPopupProvider.notifier).set(TrayPopupMode.quickAdd);
+    await _showPopupWindow(const Size(420, 240));
   }
 
-  Future<void> _showMainWindow() async {
+  /// Opens the manage projects standalone popup window.
+  Future<void> openManageProjectsPopup() async {
+    _ref
+        .read(activeTrayPopupProvider.notifier)
+        .set(TrayPopupMode.manageProjects);
+    await _showPopupWindow(const Size(480, 500));
+  }
+
+  /// Restores and focuses the main application window.
+  Future<void> showMainWindow() async {
+    _ref.read(activeTrayPopupProvider.notifier).set(TrayPopupMode.none);
+    if (!isSupported) return;
+    await windowManager.setAlwaysOnTop(false);
+    await windowManager.setSize(const Size(800, 560));
+    await windowManager.center();
+    await windowManager.show();
+    await windowManager.focus();
+  }
+
+  /// Closes any active tray popup window and hides back to the tray.
+  Future<void> closeTrayPopup() async {
+    _ref.read(activeTrayPopupProvider.notifier).set(TrayPopupMode.none);
+    if (!isSupported) return;
+    await windowManager.setAlwaysOnTop(false);
+    await windowManager.hide();
+  }
+
+  Future<void> _showPopupWindow(Size size) async {
+    if (!isSupported) return;
+    await windowManager.setAlwaysOnTop(true);
+    await windowManager.setSize(size);
+    await windowManager.center();
     await windowManager.show();
     await windowManager.focus();
   }

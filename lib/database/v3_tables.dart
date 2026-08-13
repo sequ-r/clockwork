@@ -110,16 +110,10 @@ class Labels extends Table {
 /// both sides so deleting a task or label cleans up the join rows.
 @DataClassName('TaskLabel')
 class TaskLabels extends Table {
-  IntColumn get taskId => integer().references(
-    Tasks,
-    #id,
-    onDelete: KeyAction.cascade,
-  )();
-  IntColumn get labelId => integer().references(
-    Labels,
-    #id,
-    onDelete: KeyAction.cascade,
-  )();
+  IntColumn get taskId =>
+      integer().references(Tasks, #id, onDelete: KeyAction.cascade)();
+  IntColumn get labelId =>
+      integer().references(Labels, #id, onDelete: KeyAction.cascade)();
 
   @override
   Set<Column> get primaryKey => {taskId, labelId};
@@ -170,11 +164,8 @@ class Tasks extends Table {
 
   // Legacy v2 column. Kept during v3 so existing UI keeps compiling.
   // Will be dropped in a later migration once Phases 10-12 land.
-  IntColumn get tagId => integer().nullable().references(
-    Tags,
-    #id,
-    onDelete: KeyAction.setNull,
-  )();
+  IntColumn get tagId =>
+      integer().nullable().references(Tags, #id, onDelete: KeyAction.setNull)();
 
   IntColumn get projectId => integer().nullable().references(
     Projects,
@@ -203,11 +194,8 @@ class TimeEntries extends Table {
   IntColumn get id => integer().autoIncrement()();
 
   // Legacy v2 column. See note on Tasks.tagId.
-  IntColumn get tagId => integer().nullable().references(
-    Tags,
-    #id,
-    onDelete: KeyAction.setNull,
-  )();
+  IntColumn get tagId =>
+      integer().nullable().references(Tags, #id, onDelete: KeyAction.setNull)();
 
   IntColumn get projectId => integer().nullable().references(
     Projects,
@@ -248,9 +236,6 @@ class Tags extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text().withLength(min: 1)();
   IntColumn get color => integer()();
-  IntColumn get parentId => integer().nullable().references(
-    Tags,
-    #id,
-    onDelete: KeyAction.setNull,
-  )();
+  IntColumn get parentId =>
+      integer().nullable().references(Tags, #id, onDelete: KeyAction.setNull)();
 }

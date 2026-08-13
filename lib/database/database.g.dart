@@ -1197,20 +1197,18 @@ abstract class _$ClockworkDatabase extends GeneratedDatabase {
   ]);
 }
 
-typedef $$TagsTableCreateCompanionBuilder =
-    TagsCompanion Function({
-      Value<int> id,
-      required String name,
-      required int color,
-      Value<int?> parentId,
-    });
-typedef $$TagsTableUpdateCompanionBuilder =
-    TagsCompanion Function({
-      Value<int> id,
-      Value<String> name,
-      Value<int> color,
-      Value<int?> parentId,
-    });
+typedef $$TagsTableCreateCompanionBuilder = TagsCompanion Function({
+  Value<int> id,
+  required String name,
+  required int color,
+  Value<int?> parentId,
+});
+typedef $$TagsTableUpdateCompanionBuilder = TagsCompanion Function({
+  Value<int> id,
+  Value<String> name,
+  Value<int> color,
+  Value<int?> parentId,
+});
 
 final class $$TagsTableReferences
     extends BaseReferences<_$ClockworkDatabase, $TagsTable, Tag> {
@@ -1595,17 +1593,15 @@ class $$TagsTableTableManager
                         >
                       >(state) {
                         if (parentId) {
-                          state =
-                              state.withJoin(
-                                    currentTable: table,
-                                    currentColumn: table.parentId,
-                                    referencedTable: $$TagsTableReferences
-                                        ._parentIdTable(db),
-                                    referencedColumn: $$TagsTableReferences
-                                        ._parentIdTable(db)
-                                        .id,
-                                  )
-                                  as T;
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.parentId,
+                            referencedTable: $$TagsTableReferences
+                                ._parentIdTable(db),
+                            referencedColumn: $$TagsTableReferences
+                                ._parentIdTable(db)
+                                .id,
+                          ) as T;
                         }
 
                         return state;
@@ -1619,10 +1615,10 @@ class $$TagsTableTableManager
                               ._tasksRefsTable(db),
                           managerFromTypedResult: (p0) =>
                               $$TagsTableReferences(db, table, p0).tasksRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.tagId == item.id,
-                              ),
+                          referencedItemsForCurrentItem: (
+                            item,
+                            referencedItems,
+                          ) => referencedItems.where((e) => e.tagId == item.id),
                           typedResults: items,
                         ),
                       if (timeEntriesRefs)
@@ -1635,10 +1631,10 @@ class $$TagsTableTableManager
                             table,
                             p0,
                           ).timeEntriesRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.tagId == item.id,
-                              ),
+                          referencedItemsForCurrentItem: (
+                            item,
+                            referencedItems,
+                          ) => referencedItems.where((e) => e.tagId == item.id),
                           typedResults: items,
                         ),
                     ];
@@ -1667,24 +1663,22 @@ typedef $$TagsTableProcessedTableManager =
         bool timeEntriesRefs,
       })
     >;
-typedef $$TasksTableCreateCompanionBuilder =
-    TasksCompanion Function({
-      Value<int> id,
-      required String title,
-      required String date,
-      Value<bool> done,
-      Value<int?> tagId,
-      Value<String?> notes,
-    });
-typedef $$TasksTableUpdateCompanionBuilder =
-    TasksCompanion Function({
-      Value<int> id,
-      Value<String> title,
-      Value<String> date,
-      Value<bool> done,
-      Value<int?> tagId,
-      Value<String?> notes,
-    });
+typedef $$TasksTableCreateCompanionBuilder = TasksCompanion Function({
+  Value<int> id,
+  required String title,
+  required String date,
+  Value<bool> done,
+  Value<int?> tagId,
+  Value<String?> notes,
+});
+typedef $$TasksTableUpdateCompanionBuilder = TasksCompanion Function({
+  Value<int> id,
+  Value<String> title,
+  Value<String> date,
+  Value<bool> done,
+  Value<int?> tagId,
+  Value<String?> notes,
+});
 
 final class $$TasksTableReferences
     extends BaseReferences<_$ClockworkDatabase, $TasksTable, Task> {
@@ -2026,17 +2020,14 @@ class $$TasksTableTableManager
                     >
                   >(state) {
                     if (tagId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.tagId,
-                                referencedTable: $$TasksTableReferences
-                                    ._tagIdTable(db),
-                                referencedColumn: $$TasksTableReferences
-                                    ._tagIdTable(db)
-                                    .id,
-                              )
-                              as T;
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.tagId,
+                        referencedTable: $$TasksTableReferences._tagIdTable(db),
+                        referencedColumn: $$TasksTableReferences
+                            ._tagIdTable(db)
+                            .id,
+                      ) as T;
                     }
 
                     return state;
@@ -2443,30 +2434,26 @@ class $$TimeEntriesTableTableManager
                     >
                   >(state) {
                     if (tagId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.tagId,
-                                referencedTable: $$TimeEntriesTableReferences
-                                    ._tagIdTable(db),
-                                referencedColumn: $$TimeEntriesTableReferences
-                                    ._tagIdTable(db)
-                                    .id,
-                              )
-                              as T;
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.tagId,
+                        referencedTable: $$TimeEntriesTableReferences
+                            ._tagIdTable(db),
+                        referencedColumn: $$TimeEntriesTableReferences
+                            ._tagIdTable(db)
+                            .id,
+                      ) as T;
                     }
                     if (taskId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.taskId,
-                                referencedTable: $$TimeEntriesTableReferences
-                                    ._taskIdTable(db),
-                                referencedColumn: $$TimeEntriesTableReferences
-                                    ._taskIdTable(db)
-                                    .id,
-                              )
-                              as T;
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.taskId,
+                        referencedTable: $$TimeEntriesTableReferences
+                            ._taskIdTable(db),
+                        referencedColumn: $$TimeEntriesTableReferences
+                            ._taskIdTable(db)
+                            .id,
+                      ) as T;
                     }
 
                     return state;

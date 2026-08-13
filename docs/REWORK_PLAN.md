@@ -7,7 +7,7 @@ Every dependency combination in this document was **empirically verified**
 against the toolchain below on 2026-08-11. Where a "latest" version is not
 usable, the reason is recorded.
 
-- Flutter 3.44.9 (stable), Dart 3.12.2
+- Flutter 3.47.0 (stable), Dart 3.13.0
 - Session: Wayland + GNOME
 - Target platforms: Linux desktop, Android
 
@@ -61,28 +61,15 @@ They are the reason several "obvious" choices in this plan are rejected.
 | `org.freedesktop.portal.Notification` | present | Fallback surface for shortcuts |
 | `org.kde.StatusNotifierWatcher` | present (AppIndicator ext.) | Tray works, but is extension-dependent |
 | GTK | gtk4 `4.22.4` **and** gtk3 `3.24.52` | Current CMake probe **breaks the build** |
-| `flutter_riverpod` | project `2.6.1`, latest `3.4.2` | Upgrade, but pin `3.3.2` (see below) |
+| `flutter_riverpod` | project `2.6.1`, latest `3.4.2` | Upgraded to `^3.4.2` on Flutter 3.47 |
 | `dbus` package | `0.7.14` | Pure-Dart portal access, no native code |
 
-### Finding A: latest Riverpod does not resolve
+### Finding A: Riverpod unpinned on Flutter 3.47
 
-`riverpod_generator` 4.0.6+ requires `analyzer ^13.0.0`. Flutter 3.44.9's
-bundled `flutter_test` pins `test_api 0.7.11` and `matcher 0.12.19`, which
-transitively caps `analyzer` below 13. Resolution **fails**.
-
-The highest working set, verified by `flutter pub get`, `build_runner build`
-and `dart analyze` (which reported *No issues found*):
-
-```
-flutter_riverpod:    3.3.2
-riverpod_annotation: ^4.0.3
-riverpod_generator:  4.0.4
-riverpod_lint:       ^3.1.4
--> resolves analyzer 12.1.0
-```
-
-This still delivers Riverpod 3 with codegen. Revisit when Flutter's bundled
-`test_api` advances.
+On Flutter 3.44.9, `riverpod_generator` 4.0.6+ required `analyzer ^13.0.0` which conflicted
+with bundled `flutter_test` pins. On Flutter 3.47.0 (Dart 3.13.0), the bundled `flutter_test`
+supports `analyzer 13.3.0`, resolving the conflict and allowing `flutter_riverpod ^3.4.2`
+and `riverpod_generator ^4.0.8`.
 
 ### Finding B: `test: ^1.31.0` must be removed
 

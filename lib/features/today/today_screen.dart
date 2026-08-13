@@ -65,9 +65,8 @@ class _WelcomeHeader extends ConsumerWidget {
         const SizedBox(height: 4),
         Text(
           DateFormat('EEEE, d MMMM').format(selectedDate),
-          style: Theme.of(
-            context,
-          ).textTheme.bodyMedium?.copyWith(color: colorScheme.outline),
+          style: Theme.of(context).textTheme.bodyMedium
+              ?.copyWith(color: colorScheme.outline),
         ),
         const SizedBox(height: 8),
         Row(
@@ -206,9 +205,8 @@ class _TaskTile extends ConsumerWidget {
               ),
               child: Text(
                 formatDuration(hours),
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: colorScheme.onPrimaryContainer,
-                ),
+                style: Theme.of(context).textTheme.labelSmall
+                    ?.copyWith(color: colorScheme.onPrimaryContainer),
               ),
             ),
           ],
