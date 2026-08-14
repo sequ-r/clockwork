@@ -5,8 +5,10 @@ import 'package:clockwork/l10n/generated/app_localizations.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 
-/// Minimal quick-add widget opened from the system tray: just the amount
-/// of hours to add to today and a plus button.
+const _quickPicks = [15, 30, 60, 120, 240];
+
+/// Minimal quick-add dialog opened inside the application: select hours,
+/// project, and confirm to add time to today.
 class QuickAddDialog extends StatefulWidget {
   /// Creates the tray quick-add dialog.
   const QuickAddDialog({super.key});
@@ -16,11 +18,21 @@ class QuickAddDialog extends StatefulWidget {
 }
 
 class _QuickAddDialogState extends State<QuickAddDialog> {
-  final _hoursController = TextEditingController(text: '1');
+  late final TextEditingController _hoursController;
+  late final TextEditingController _notesController;
+  int? _tagId;
+
+  @override
+  void initState() {
+    super.initState();
+    _hoursController = TextEditingController(text: '1');
+    _notesController = TextEditingController();
+  }
 
   @override
   void dispose() {
     _hoursController.dispose();
+    _notesController.dispose();
     super.dispose();
   }
 
@@ -30,16 +42,32 @@ class _QuickAddDialogState extends State<QuickAddDialog> {
     return (hours * 60).round();
   }
 
-  Future<void> _add() async {
+  void _setHours(double hours) {
+    final rounded = (hours * 100).round() / 100;
+    _hoursController.text = rounded == rounded.roundToDouble()
+        ? rounded.toInt().toString()
+        : rounded.toString();
+    setState(() {});
+  }
+
+  void _step(double delta) {
+    final current = double.tryParse(_hoursController.text.trim()) ?? 0;
+    final next = (current + delta).clamp(0.25, 24.0);
+    _setHours(next);
+  }
+
+  Future<void> _confirm() async {
     final minutes = _minutes;
     if (minutes == null) return;
     final now = DateTime.now();
     final deps = ClockworkScope.of(context);
+    final notes = _notesController.text.trim();
     await deps.timeEntryRepository.createEntry(
       TimeEntriesCompanion.insert(
         date: dateKey(now),
         minutes: minutes,
-        tagId: const Value(null),
+        tagId: Value(_tagId),
+        notes: Value(notes.isEmpty ? null : notes),
       ),
     );
     if (mounted) Navigator.pop(context);
@@ -47,46 +75,121 @@ class _QuickAddDialogState extends State<QuickAddDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final minutes = _minutes;
+    final deps = ClockworkScope.of(context);
     final l10n = AppLocalizations.of(context)!;
+    final minutes = _minutes;
 
-    return AlertDialog(
-      title: Text(l10n.quickAddTitle),
-      content: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: 100,
-            child: TextField(
-              controller: _hoursController,
-              autofocus: true,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                suffixText: 'h',
-                isDense: true,
-              ),
-              textAlign: TextAlign.center,
-              onChanged: (_) => setState(() {}),
-              onSubmitted: (_) => _add(),
+    return StreamBuilder<List<Tag>>(
+      stream: deps.tagRepository.watchAll(),
+      builder: (context, snapshot) {
+        final tags = snapshot.data ?? const [];
+
+        return AlertDialog(
+          title: Text(l10n.quickAddTitle),
+          content: SizedBox(
+            width: 380,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    IconButton.filledTonal(
+                      onPressed: () => _step(-0.5),
+                      icon: const Icon(Icons.remove),
+                    ),
+                    const SizedBox(width: 12),
+                    SizedBox(
+                      width: 90,
+                      child: TextField(
+                        controller: _hoursController,
+                        autofocus: true,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          suffixText: 'h',
+                          isDense: true,
+                        ),
+                        textAlign: TextAlign.center,
+                        onChanged: (_) => setState(() {}),
+                        onSubmitted: (_) => _confirm(),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    IconButton.filledTonal(
+                      onPressed: () => _step(0.5),
+                      icon: const Icon(Icons.add),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    for (final pick in _quickPicks)
+                      ChoiceChip(
+                        label: Text(pick < 60 ? '${pick}m' : '${pick ~/ 60}h'),
+                        selected: minutes == pick,
+                        onSelected: (_) => _setHours(pick / 60),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<int?>(
+                  initialValue: _tagId,
+                  decoration: InputDecoration(
+                    labelText: l10n.projectLabel,
+                    isDense: true,
+                  ),
+                  items: [
+                    DropdownMenuItem(value: null, child: Text(l10n.noneOption)),
+                    for (final tag in tags)
+                      DropdownMenuItem(
+                        value: tag.id,
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 6,
+                              backgroundColor: Color(tag.color),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(tag.name),
+                          ],
+                        ),
+                      ),
+                  ],
+                  onChanged: (value) => setState(() => _tagId = value),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _notesController,
+                  decoration: InputDecoration(
+                    labelText: l10n.commentLabel,
+                    isDense: true,
+                  ),
+                  onSubmitted: (_) => _confirm(),
+                ),
+              ],
             ),
           ),
-          const SizedBox(width: 12),
-          IconButton.filled(
-            onPressed: minutes != null ? _add : null,
-            icon: const Icon(Icons.add),
-            iconSize: 32,
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(l10n.dialogCancel),
-        ),
-      ],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(l10n.dialogCancel),
+            ),
+            FilledButton.icon(
+              onPressed: minutes != null ? _confirm : null,
+              icon: const Icon(Icons.check),
+              label: Text(l10n.confirmButton),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -104,11 +207,21 @@ class QuickAddPopupView extends StatefulWidget {
 }
 
 class _QuickAddPopupViewState extends State<QuickAddPopupView> {
-  final _hoursController = TextEditingController(text: '1');
+  late final TextEditingController _hoursController;
+  late final TextEditingController _notesController;
+  int? _tagId;
+
+  @override
+  void initState() {
+    super.initState();
+    _hoursController = TextEditingController(text: '1');
+    _notesController = TextEditingController();
+  }
 
   @override
   void dispose() {
     _hoursController.dispose();
+    _notesController.dispose();
     super.dispose();
   }
 
@@ -118,16 +231,32 @@ class _QuickAddPopupViewState extends State<QuickAddPopupView> {
     return (hours * 60).round();
   }
 
-  Future<void> _add() async {
+  void _setHours(double hours) {
+    final rounded = (hours * 100).round() / 100;
+    _hoursController.text = rounded == rounded.roundToDouble()
+        ? rounded.toInt().toString()
+        : rounded.toString();
+    setState(() {});
+  }
+
+  void _step(double delta) {
+    final current = double.tryParse(_hoursController.text.trim()) ?? 0;
+    final next = (current + delta).clamp(0.25, 24.0);
+    _setHours(next);
+  }
+
+  Future<void> _confirm() async {
     final minutes = _minutes;
     if (minutes == null) return;
     final now = DateTime.now();
     final deps = ClockworkScope.of(context);
+    final notes = _notesController.text.trim();
     await deps.timeEntryRepository.createEntry(
       TimeEntriesCompanion.insert(
         date: dateKey(now),
         minutes: minutes,
-        tagId: const Value(null),
+        tagId: Value(_tagId),
+        notes: Value(notes.isEmpty ? null : notes),
       ),
     );
     widget.onComplete?.call();
@@ -135,60 +264,123 @@ class _QuickAddPopupViewState extends State<QuickAddPopupView> {
 
   @override
   Widget build(BuildContext context) {
+    final deps = ClockworkScope.of(context);
     final minutes = _minutes;
     final l10n = AppLocalizations.of(context)!;
 
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+    return StreamBuilder<List<Tag>>(
+      stream: deps.tagRepository.watchAll(),
+      builder: (context, snapshot) {
+        final tags = snapshot.data ?? const [];
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                l10n.hoursFieldLabel,
-                style: Theme.of(context).textTheme.titleMedium,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton.filledTonal(
+                    onPressed: () => _step(-0.5),
+                    icon: const Icon(Icons.remove),
+                  ),
+                  const SizedBox(width: 12),
+                  SizedBox(
+                    width: 90,
+                    child: TextField(
+                      controller: _hoursController,
+                      autofocus: true,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        suffixText: 'h',
+                        isDense: true,
+                      ),
+                      textAlign: TextAlign.center,
+                      onChanged: (_) => setState(() {}),
+                      onSubmitted: (_) => _confirm(),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  IconButton.filledTonal(
+                    onPressed: () => _step(0.5),
+                    icon: const Icon(Icons.add),
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-              SizedBox(
-                width: 100,
-                child: TextField(
-                  controller: _hoursController,
-                  autofocus: true,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    suffixText: 'h',
-                    isDense: true,
-                  ),
-                  textAlign: TextAlign.center,
-                  onChanged: (_) => setState(() {}),
-                  onSubmitted: (_) => _add(),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                alignment: WrapAlignment.center,
+                children: [
+                  for (final pick in _quickPicks)
+                    ChoiceChip(
+                      label: Text(pick < 60 ? '${pick}m' : '${pick ~/ 60}h'),
+                      selected: minutes == pick,
+                      onSelected: (_) => _setHours(pick / 60),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              DropdownButtonFormField<int?>(
+                initialValue: _tagId,
+                decoration: InputDecoration(
+                  labelText: l10n.projectLabel,
+                  isDense: true,
                 ),
+                items: [
+                  DropdownMenuItem(value: null, child: Text(l10n.noneOption)),
+                  for (final tag in tags)
+                    DropdownMenuItem(
+                      value: tag.id,
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 6,
+                            backgroundColor: Color(tag.color),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(tag.name),
+                        ],
+                      ),
+                    ),
+                ],
+                onChanged: (value) => setState(() => _tagId = value),
               ),
-              const SizedBox(width: 12),
-              IconButton.filled(
-                onPressed: minutes != null ? _add : null,
-                icon: const Icon(Icons.add),
-                iconSize: 28,
+              const SizedBox(height: 12),
+              TextField(
+                controller: _notesController,
+                decoration: InputDecoration(
+                  labelText: l10n.commentLabel,
+                  isDense: true,
+                ),
+                onSubmitted: (_) => _confirm(),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => widget.onComplete?.call(),
+                    child: Text(l10n.dialogCancel),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton.icon(
+                    onPressed: minutes != null ? _confirm : null,
+                    icon: const Icon(Icons.check),
+                    label: Text(l10n.confirmButton),
+                  ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              TextButton(
-                onPressed: () => widget.onComplete?.call(),
-                child: Text(l10n.dialogCancel),
-              ),
-            ],
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

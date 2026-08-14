@@ -1,6 +1,8 @@
 import 'package:clockwork/core/di/app_dependencies.dart';
 import 'package:clockwork/database/database.dart';
 import 'package:clockwork/database/dates.dart';
+import 'package:clockwork/features/quick_add/quick_add_dialog.dart';
+import 'package:clockwork/l10n/generated/app_localizations.dart';
 import 'package:clockwork/main.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
@@ -76,6 +78,53 @@ void main() {
       dateKey(DateTime.now()),
     );
     expect(entries.single.minutes, 60);
+
+    await _tearDown(tester, harness);
+  });
+
+  testWidgets('QuickAddPopupView supports increment, decrement, and confirm', (
+    tester,
+  ) async {
+    final harness = await _pumpApp(tester);
+    final db = harness.dependencies.database;
+    await db.tagDao.createTag(
+      TagsCompanion.insert(name: 'Project Alpha', color: 0xFF00FF00),
+    );
+
+    var completed = false;
+    await tester.pumpWidget(
+      ClockworkScope(
+        dependencies: harness.dependencies,
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: QuickAddPopupView(onComplete: () => completed = true),
+          ),
+        ),
+      ),
+    );
+    await _settle(tester);
+
+    // Initial value is 1h. Tap '+' to make it 1.5h.
+    await tester.tap(find.byIcon(Icons.add).first);
+    await tester.pump();
+    expect(find.text('1.5'), findsOneWidget);
+
+    // Tap '-' twice to make it 0.5h.
+    await tester.tap(find.byIcon(Icons.remove).first);
+    await tester.pump();
+    await tester.tap(find.byIcon(Icons.remove).first);
+    await tester.pump();
+    expect(find.text('0.5'), findsOneWidget);
+
+    // Confirm the entry
+    await tester.tap(find.text('Confirm'));
+    await _settle(tester);
+
+    expect(completed, isTrue);
+    final entries = await db.timeEntryDao.getForDate(dateKey(DateTime.now()));
+    expect(entries.single.minutes, 30);
 
     await _tearDown(tester, harness);
   });

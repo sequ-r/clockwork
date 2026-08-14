@@ -142,4 +142,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get projectsDialogTitle => 'Projects';
+
+  @override
+  String get confirmButton => 'Confirm';
+
+  @override
+  String get projectLabel => 'Project';
 }

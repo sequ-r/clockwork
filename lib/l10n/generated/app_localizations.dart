@@ -357,6 +357,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Projects'**
   String get projectsDialogTitle;
+
+  /// Confirm button text
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm'**
+  String get confirmButton;
+
+  /// Project dropdown label
+  ///
+  /// In en, this message translates to:
+  /// **'Project'**
+  String get projectLabel;
 }
 
 class _AppLocalizationsDelegate

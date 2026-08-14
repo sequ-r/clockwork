@@ -120,7 +120,7 @@ class TrayService with TrayListener {
   /// Opens the quick add standalone popup window.
   Future<void> openQuickAddPopup() async {
     appViewModel.setActiveTrayPopup(TrayPopupMode.quickAdd);
-    await _showPopupWindow(const Size(420, 240));
+    await _showPopupWindow(const Size(440, 360));
   }
 
   /// Opens the manage projects standalone popup window.

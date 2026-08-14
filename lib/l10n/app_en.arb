@@ -180,5 +180,13 @@
   "projectsDialogTitle": "Projects",
   "@projectsDialogTitle": {
     "description": "Title for the projects dialog"
+  },
+  "confirmButton": "Confirm",
+  "@confirmButton": {
+    "description": "Confirm button text"
+  },
+  "projectLabel": "Project",
+  "@projectLabel": {
+    "description": "Project dropdown label"
   }
 }
