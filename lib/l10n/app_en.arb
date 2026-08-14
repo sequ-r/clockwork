@@ -40,5 +40,145 @@
         "type": "int"
       }
     }
+  },
+  "projectsMenuTooltip": "Projects menu",
+  "@projectsMenuTooltip": {
+    "description": "Tooltip for the projects dropdown button in the app bar"
+  },
+  "manageProjects": "Manage projects",
+  "@manageProjects": {
+    "description": "Label for managing projects"
+  },
+  "newProject": "New project",
+  "@newProject": {
+    "description": "Label for creating a new project"
+  },
+  "editProject": "Edit project",
+  "@editProject": {
+    "description": "Dialog title for editing a project"
+  },
+  "allProjects": "All",
+  "@allProjects": {
+    "description": "Filter chip label for viewing all projects"
+  },
+  "projectName": "Name",
+  "@projectName": {
+    "description": "Label for project name field"
+  },
+  "parentProject": "Parent project",
+  "@parentProject": {
+    "description": "Label for parent project dropdown field"
+  },
+  "noneOption": "None",
+  "@noneOption": {
+    "description": "Dropdown option for no selection"
+  },
+  "dialogCancel": "Cancel",
+  "@dialogCancel": {
+    "description": "Cancel button text in dialogs"
+  },
+  "dialogSave": "Save",
+  "@dialogSave": {
+    "description": "Save button text in dialogs"
+  },
+  "dialogDelete": "Delete",
+  "@dialogDelete": {
+    "description": "Delete button text in dialogs"
+  },
+  "dialogClose": "Close",
+  "@dialogClose": {
+    "description": "Close button text in dialogs"
+  },
+  "dialogAdd": "Add",
+  "@dialogAdd": {
+    "description": "Add button text in dialogs"
+  },
+  "noProjectsYet": "No projects yet. Add one below.",
+  "@noProjectsYet": {
+    "description": "Empty state when no projects exist"
+  },
+  "addProjectButton": "Add project",
+  "@addProjectButton": {
+    "description": "Button to add a project"
+  },
+  "quickAddTitle": "Quick add",
+  "@quickAddTitle": {
+    "description": "Title of the quick add popup/dialog"
+  },
+  "quickAddTimeTitle": "Quick add time",
+  "@quickAddTimeTitle": {
+    "description": "Title of the tray quick add window"
+  },
+  "hoursLabel": "Hours",
+  "@hoursLabel": {
+    "description": "Hours label"
+  },
+  "hoursFieldLabel": "Hours:",
+  "@hoursFieldLabel": {
+    "description": "Hours field label"
+  },
+  "commentLabel": "Comment",
+  "@commentLabel": {
+    "description": "Comment input label"
+  },
+  "tagLabel": "Tag",
+  "@tagLabel": {
+    "description": "Tag / project input label"
+  },
+  "taskLabel": "Task",
+  "@taskLabel": {
+    "description": "Task selection label"
+  },
+  "editTaskTitle": "Edit task",
+  "@editTaskTitle": {
+    "description": "Title for the edit task dialog"
+  },
+  "taskTitleLabel": "Title",
+  "@taskTitleLabel": {
+    "description": "Task title input label"
+  },
+  "taskNotesLabel": "Notes",
+  "@taskNotesLabel": {
+    "description": "Task notes input label"
+  },
+  "todayTab": "Today",
+  "@todayTab": {
+    "description": "Bottom navigation label for Today tab"
+  },
+  "calendarTab": "Calendar",
+  "@calendarTab": {
+    "description": "Bottom navigation label for Calendar tab"
+  },
+  "weekSegment": "Week",
+  "@weekSegment": {
+    "description": "Segmented button label for Week view"
+  },
+  "monthSegment": "Month",
+  "@monthSegment": {
+    "description": "Segmented button label for Month view"
+  },
+  "previousTooltip": "Previous",
+  "@previousTooltip": {
+    "description": "Tooltip for navigating to previous period"
+  },
+  "nextTooltip": "Next",
+  "@nextTooltip": {
+    "description": "Tooltip for navigating to next period"
+  },
+  "todayTooltip": "Today",
+  "@todayTooltip": {
+    "description": "Tooltip for navigating to today"
+  },
+  "deleteEntryTooltip": "Delete entry",
+  "@deleteEntryTooltip": {
+    "description": "Tooltip for deleting a time entry"
+  },
+  "defaultTimeEntryTitle": "Time entry",
+  "@defaultTimeEntryTitle": {
+    "description": "Default title for a time entry with no notes or tag"
+  },
+  "projectsDialogTitle": "Projects",
+  "@projectsDialogTitle": {
+    "description": "Title for the projects dialog"
   }
 }

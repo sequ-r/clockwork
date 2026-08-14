@@ -12,10 +12,9 @@ library;
 
 import 'dart:developer' as developer;
 
+import 'package:clockwork/services/tray_service.dart';
 import 'package:flutter/services.dart';
 import 'package:window_manager/window_manager.dart';
-
-import '../services/tray_service.dart';
 
 /// MethodChannel for the optional libadwaita headerbar native plugin.
 ///

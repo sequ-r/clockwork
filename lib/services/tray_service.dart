@@ -3,13 +3,11 @@ import 'dart:developer' as developer;
 import 'dart:io';
 import 'dart:ui' show Size;
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:clockwork/core/view_models/app_view_model.dart';
+import 'package:clockwork/database/database.dart';
 import 'package:path/path.dart' as p;
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
-
-import '../core/providers/database.dart';
-import '../core/providers/ui_state.dart';
 
 /// Resolves a bundled asset to an absolute path, as required by the
 /// native tray APIs on desktop.
@@ -18,19 +16,16 @@ String resolvedAssetPath(String asset) {
   return p.join(exeDir, 'data', 'flutter_assets', asset);
 }
 
-/// Singleton tray service. Created once by the framework.
-final trayServiceProvider = Provider<TrayService>((ref) {
-  final service = TrayService(ref);
-  ref.onDispose(service.dispose);
-  return service;
-});
-
 /// Manages the system tray icon and its quick-add action.
 class TrayService with TrayListener {
-  /// Creates the service. Use [trayServiceProvider] to obtain an instance.
-  TrayService(this._ref);
+  /// Creates the service with [appViewModel] and [database].
+  TrayService({required this.appViewModel, required this.database});
 
-  final Ref _ref;
+  /// Application view model reference.
+  final AppViewModel appViewModel;
+
+  /// Database reference.
+  final ClockworkDatabase database;
   bool _initialized = false;
 
   /// Whether the tray is available on this platform and outside tests.
@@ -72,10 +67,6 @@ class TrayService with TrayListener {
   }
 
   /// Applies platform-specific tray properties.
-  ///
-  /// The Linux implementation only supports a title, while Windows and
-  /// macOS also support tooltips. Failures are logged but do not abort
-  /// init, because the menu and icon are the critical surfaces.
   Future<void> _configurePlatformExtras() async {
     try {
       if (Platform.isLinux) {
@@ -128,21 +119,19 @@ class TrayService with TrayListener {
 
   /// Opens the quick add standalone popup window.
   Future<void> openQuickAddPopup() async {
-    _ref.read(activeTrayPopupProvider.notifier).set(TrayPopupMode.quickAdd);
+    appViewModel.setActiveTrayPopup(TrayPopupMode.quickAdd);
     await _showPopupWindow(const Size(420, 240));
   }
 
   /// Opens the manage projects standalone popup window.
   Future<void> openManageProjectsPopup() async {
-    _ref
-        .read(activeTrayPopupProvider.notifier)
-        .set(TrayPopupMode.manageProjects);
+    appViewModel.setActiveTrayPopup(TrayPopupMode.manageProjects);
     await _showPopupWindow(const Size(480, 500));
   }
 
   /// Restores and focuses the main application window.
   Future<void> showMainWindow() async {
-    _ref.read(activeTrayPopupProvider.notifier).set(TrayPopupMode.none);
+    appViewModel.setActiveTrayPopup(TrayPopupMode.none);
     if (!isSupported) return;
     await windowManager.setAlwaysOnTop(false);
     await windowManager.setSize(const Size(800, 560));
@@ -153,7 +142,7 @@ class TrayService with TrayListener {
 
   /// Closes any active tray popup window and hides back to the tray.
   Future<void> closeTrayPopup() async {
-    _ref.read(activeTrayPopupProvider.notifier).set(TrayPopupMode.none);
+    appViewModel.setActiveTrayPopup(TrayPopupMode.none);
     if (!isSupported) return;
     await windowManager.setAlwaysOnTop(false);
     await windowManager.hide();
@@ -169,7 +158,7 @@ class TrayService with TrayListener {
   }
 
   Future<void> _quit() async {
-    await _ref.read(databaseProvider).close();
+    await database.close();
     exit(0);
   }
 }

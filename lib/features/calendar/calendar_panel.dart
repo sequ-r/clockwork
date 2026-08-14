@@ -1,107 +1,125 @@
+import 'package:clockwork/core/di/app_dependencies.dart';
+import 'package:clockwork/core/view_models/app_view_model.dart';
+import 'package:clockwork/database/dates.dart';
+import 'package:clockwork/features/calendar/calendar_view_model.dart';
+import 'package:clockwork/features/calendar/widgets/month_view.dart';
+import 'package:clockwork/features/calendar/widgets/week_view.dart';
+import 'package:clockwork/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import '../../database/dates.dart';
-import '../../core/providers/ui_state.dart';
-import 'widgets/month_view.dart';
-import 'widgets/week_view.dart';
-
 /// Right pane: weekly/monthly overview of tasks and tracked time.
-class CalendarPanel extends ConsumerWidget {
-  /// Creates the calendar pane in its default state.
+class CalendarPanel extends StatefulWidget {
+  /// Creates the calendar pane.
   const CalendarPanel({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final view = ref.watch(calendarViewModeProvider);
-    final anchor = ref.watch(calendarAnchorProvider);
+  State<CalendarPanel> createState() => _CalendarPanelState();
+}
 
-    final rangeLabel = switch (view) {
-      CalendarView.week => () {
-        final monday = startOfWeek(anchor);
-        return '${DateFormat.MMMd().format(monday)} - '
-            '${DateFormat.MMMd().format(monday.add(const Duration(days: 6)))}';
-      }(),
-      CalendarView.month => DateFormat.yMMMM().format(anchor),
-    };
+class _CalendarPanelState extends State<CalendarPanel> {
+  CalendarViewModel? _viewModel;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          child: Row(
-            children: [
-              SegmentedButton<CalendarView>(
-                segments: const [
-                  ButtonSegment(value: CalendarView.week, label: Text('Week')),
-                  ButtonSegment(
-                    value: CalendarView.month,
-                    label: Text('Month'),
-                  ),
-                ],
-                selected: {view},
-                onSelectionChanged: (selection) => ref
-                    .read(calendarViewModeProvider.notifier)
-                    .set(selection.first),
-              ),
-              IconButton(
-                tooltip: 'Previous',
-                icon: const Icon(Icons.chevron_left),
-                onPressed: () => _navigate(ref, view, anchor, forward: false),
-              ),
-              Expanded(
-                child: Text(
-                  rangeLabel,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-              ),
-              IconButton(
-                tooltip: 'Today',
-                icon: const Icon(Icons.today),
-                onPressed: () {
-                  final now = DateTime.now();
-                  final day = DateTime(now.year, now.month, now.day);
-                  ref.read(calendarAnchorProvider.notifier).set(day);
-                  ref.read(selectedDateProvider.notifier).set(day);
-                },
-              ),
-              IconButton(
-                tooltip: 'Next',
-                icon: const Icon(Icons.chevron_right),
-                onPressed: () => _navigate(ref, view, anchor, forward: true),
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: switch (view) {
-            CalendarView.week => const WeekView(),
-            CalendarView.month => const MonthView(),
-          },
-        ),
-      ],
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final deps = ClockworkScope.of(context);
+    _viewModel ??= CalendarViewModel(
+      taskRepository: deps.taskRepository,
+      timeEntryRepository: deps.timeEntryRepository,
+      tagRepository: deps.tagRepository,
+      appViewModel: deps.appViewModel,
     );
   }
 
-  void _navigate(
-    WidgetRef ref,
-    CalendarView view,
-    DateTime anchor, {
-    required bool forward,
-  }) {
-    final target = switch (view) {
-      CalendarView.week => anchor.add(Duration(days: forward ? 7 : -7)),
-      CalendarView.month => DateTime(
-        anchor.year,
-        anchor.month + (forward ? 1 : -1),
-        1,
-      ),
-    };
-    ref.read(calendarAnchorProvider.notifier).set(target);
+  @override
+  void dispose() {
+    _viewModel?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final viewModel = _viewModel;
+    if (viewModel == null) return const SizedBox.shrink();
+
+    final l10n = AppLocalizations.of(context)!;
+
+    return ListenableBuilder(
+      listenable: viewModel,
+      builder: (context, _) {
+        final appVm = viewModel.appViewModel;
+        final view = appVm.calendarViewMode;
+        final anchor = appVm.calendarAnchor;
+
+        final rangeLabel = switch (view) {
+          CalendarView.week => () {
+            final monday = startOfWeek(anchor);
+            final sunday = monday.add(const Duration(days: 6));
+            return '${DateFormat.MMMd().format(monday)} - '
+                '${DateFormat.MMMd().format(sunday)}';
+          }(),
+          CalendarView.month => DateFormat.yMMMM().format(anchor),
+        };
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: Row(
+                children: [
+                  SegmentedButton<CalendarView>(
+                    segments: [
+                      ButtonSegment(
+                        value: CalendarView.week,
+                        label: Text(l10n.weekSegment),
+                      ),
+                      ButtonSegment(
+                        value: CalendarView.month,
+                        label: Text(l10n.monthSegment),
+                      ),
+                    ],
+                    selected: {view},
+                    onSelectionChanged: (selection) =>
+                        appVm.setCalendarViewMode(selection.first),
+                  ),
+                  IconButton(
+                    tooltip: l10n.previousTooltip,
+                    icon: const Icon(Icons.chevron_left),
+                    onPressed: () => viewModel.navigate(forward: false),
+                  ),
+                  Expanded(
+                    child: Text(
+                      rangeLabel,
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: l10n.todayTooltip,
+                    icon: const Icon(Icons.today),
+                    onPressed: viewModel.goToToday,
+                  ),
+                  IconButton(
+                    tooltip: l10n.nextTooltip,
+                    icon: const Icon(Icons.chevron_right),
+                    onPressed: () => viewModel.navigate(forward: true),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: switch (view) {
+                CalendarView.week => WeekView(viewModel: viewModel),
+                CalendarView.month => MonthView(viewModel: viewModel),
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 }

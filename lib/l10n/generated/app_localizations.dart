@@ -147,6 +147,216 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Over the {hours}h working limit'**
   String overLimitTooltip(int hours);
+
+  /// Tooltip for the projects dropdown button in the app bar
+  ///
+  /// In en, this message translates to:
+  /// **'Projects menu'**
+  String get projectsMenuTooltip;
+
+  /// Label for managing projects
+  ///
+  /// In en, this message translates to:
+  /// **'Manage projects'**
+  String get manageProjects;
+
+  /// Label for creating a new project
+  ///
+  /// In en, this message translates to:
+  /// **'New project'**
+  String get newProject;
+
+  /// Dialog title for editing a project
+  ///
+  /// In en, this message translates to:
+  /// **'Edit project'**
+  String get editProject;
+
+  /// Filter chip label for viewing all projects
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get allProjects;
+
+  /// Label for project name field
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get projectName;
+
+  /// Label for parent project dropdown field
+  ///
+  /// In en, this message translates to:
+  /// **'Parent project'**
+  String get parentProject;
+
+  /// Dropdown option for no selection
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get noneOption;
+
+  /// Cancel button text in dialogs
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get dialogCancel;
+
+  /// Save button text in dialogs
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get dialogSave;
+
+  /// Delete button text in dialogs
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get dialogDelete;
+
+  /// Close button text in dialogs
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get dialogClose;
+
+  /// Add button text in dialogs
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get dialogAdd;
+
+  /// Empty state when no projects exist
+  ///
+  /// In en, this message translates to:
+  /// **'No projects yet. Add one below.'**
+  String get noProjectsYet;
+
+  /// Button to add a project
+  ///
+  /// In en, this message translates to:
+  /// **'Add project'**
+  String get addProjectButton;
+
+  /// Title of the quick add popup/dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Quick add'**
+  String get quickAddTitle;
+
+  /// Title of the tray quick add window
+  ///
+  /// In en, this message translates to:
+  /// **'Quick add time'**
+  String get quickAddTimeTitle;
+
+  /// Hours label
+  ///
+  /// In en, this message translates to:
+  /// **'Hours'**
+  String get hoursLabel;
+
+  /// Hours field label
+  ///
+  /// In en, this message translates to:
+  /// **'Hours:'**
+  String get hoursFieldLabel;
+
+  /// Comment input label
+  ///
+  /// In en, this message translates to:
+  /// **'Comment'**
+  String get commentLabel;
+
+  /// Tag / project input label
+  ///
+  /// In en, this message translates to:
+  /// **'Tag'**
+  String get tagLabel;
+
+  /// Task selection label
+  ///
+  /// In en, this message translates to:
+  /// **'Task'**
+  String get taskLabel;
+
+  /// Title for the edit task dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Edit task'**
+  String get editTaskTitle;
+
+  /// Task title input label
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get taskTitleLabel;
+
+  /// Task notes input label
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get taskNotesLabel;
+
+  /// Bottom navigation label for Today tab
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get todayTab;
+
+  /// Bottom navigation label for Calendar tab
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar'**
+  String get calendarTab;
+
+  /// Segmented button label for Week view
+  ///
+  /// In en, this message translates to:
+  /// **'Week'**
+  String get weekSegment;
+
+  /// Segmented button label for Month view
+  ///
+  /// In en, this message translates to:
+  /// **'Month'**
+  String get monthSegment;
+
+  /// Tooltip for navigating to previous period
+  ///
+  /// In en, this message translates to:
+  /// **'Previous'**
+  String get previousTooltip;
+
+  /// Tooltip for navigating to next period
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get nextTooltip;
+
+  /// Tooltip for navigating to today
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get todayTooltip;
+
+  /// Tooltip for deleting a time entry
+  ///
+  /// In en, this message translates to:
+  /// **'Delete entry'**
+  String get deleteEntryTooltip;
+
+  /// Default title for a time entry with no notes or tag
+  ///
+  /// In en, this message translates to:
+  /// **'Time entry'**
+  String get defaultTimeEntryTitle;
+
+  /// Title for the projects dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Projects'**
+  String get projectsDialogTitle;
 }
 
 class _AppLocalizationsDelegate

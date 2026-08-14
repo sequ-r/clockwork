@@ -1,57 +1,91 @@
-import 'package:drift/drift.dart' show Value;
+import 'package:clockwork/app/tokens.dart';
+import 'package:clockwork/core/di/app_dependencies.dart';
+import 'package:clockwork/core/view_models/app_view_model.dart';
+import 'package:clockwork/database/database.dart';
+import 'package:clockwork/database/dates.dart';
+import 'package:clockwork/features/tasks/task_edit_dialog.dart';
+import 'package:clockwork/features/today/today_view_model.dart';
+import 'package:clockwork/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-
-import '../../database/database.dart';
-import '../../database/dates.dart';
-import '../../core/providers/database.dart';
-import '../../core/providers/tasks.dart';
-import '../../core/providers/time_entries.dart';
-import '../../core/providers/ui_state.dart';
-import '../tasks/task_edit_dialog.dart';
 
 /// Today pane: welcome header, task list with hours per task, and the
 /// time entries logged on the selected day.
-class TodayScreen extends ConsumerWidget {
+class TodayScreen extends StatefulWidget {
   /// Creates the today pane.
   const TodayScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return const Padding(
-      padding: EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _WelcomeHeader(),
-          SizedBox(height: 16),
-          _AddTaskField(),
-          SizedBox(height: 12),
-          Expanded(child: _TaskList()),
-          Divider(),
-          _LoggedTimeSection(),
-        ],
-      ),
+  State<TodayScreen> createState() => _TodayScreenState();
+}
+
+class _TodayScreenState extends State<TodayScreen> {
+  TodayViewModel? _viewModel;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final deps = ClockworkScope.of(context);
+    _viewModel ??= TodayViewModel(
+      taskRepository: deps.taskRepository,
+      timeEntryRepository: deps.timeEntryRepository,
+      tagRepository: deps.tagRepository,
+      appViewModel: deps.appViewModel,
+    );
+  }
+
+  @override
+  void dispose() {
+    _viewModel?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final viewModel = _viewModel;
+    if (viewModel == null) return const SizedBox.shrink();
+
+    return ListenableBuilder(
+      listenable: viewModel,
+      builder: (context, _) {
+        return Padding(
+          padding: const EdgeInsets.all(kSpacingLg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _WelcomeHeader(viewModel: viewModel),
+              const SizedBox(height: kSpacingLg),
+              _AddTaskField(viewModel: viewModel),
+              const SizedBox(height: kSpacingMd),
+              Expanded(child: _TaskList(viewModel: viewModel)),
+              const Divider(),
+              _LoggedTimeSection(viewModel: viewModel),
+            ],
+          ),
+        );
+      },
     );
   }
 }
 
-String _greeting(DateTime time) {
-  return switch (time.hour) {
-    < 12 => 'Good morning',
-    < 18 => 'Good afternoon',
-    _ => 'Good evening',
-  };
-}
+class _WelcomeHeader extends StatelessWidget {
+  const _WelcomeHeader({required this.viewModel});
 
-class _WelcomeHeader extends ConsumerWidget {
-  const _WelcomeHeader();
+  final TodayViewModel viewModel;
+
+  String _greeting(AppLocalizations l10n, DateTime time) {
+    return switch (time.hour) {
+      < 12 => l10n.todayGreetingMorning,
+      < 18 => l10n.todayGreetingAfternoon,
+      _ => l10n.todayGreetingEvening,
+    };
+  }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final selectedDate = ref.watch(selectedDateProvider);
-    final total = ref.watch(selectedDateTotalProvider);
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final selectedDate = viewModel.selectedDate;
+    final total = viewModel.selectedDateTotal;
     final overLimit = isOverLimit(total);
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -59,16 +93,16 @@ class _WelcomeHeader extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '${_greeting(selectedDate)}!',
+          '${_greeting(l10n, selectedDate)}!',
           style: Theme.of(context).textTheme.headlineSmall,
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: kSpacingXs),
         Text(
           DateFormat('EEEE, d MMMM').format(selectedDate),
           style: Theme.of(context).textTheme.bodyMedium
               ?.copyWith(color: colorScheme.outline),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: kSpacingSm),
         Row(
           children: [
             Text(
@@ -79,9 +113,9 @@ class _WelcomeHeader extends ConsumerWidget {
               ),
             ),
             if (overLimit) ...[
-              const SizedBox(width: 8),
+              const SizedBox(width: kSpacingSm),
               Tooltip(
-                message: 'Over the ${workingHoursLimit.inHours}h working limit',
+                message: l10n.overLimitTooltip(workingHoursLimit.inHours),
                 child: Icon(
                   Icons.warning_amber_rounded,
                   color: colorScheme.error,
@@ -95,14 +129,16 @@ class _WelcomeHeader extends ConsumerWidget {
   }
 }
 
-class _AddTaskField extends ConsumerStatefulWidget {
-  const _AddTaskField();
+class _AddTaskField extends StatefulWidget {
+  const _AddTaskField({required this.viewModel});
+
+  final TodayViewModel viewModel;
 
   @override
-  ConsumerState<_AddTaskField> createState() => _AddTaskFieldState();
+  State<_AddTaskField> createState() => _AddTaskFieldState();
 }
 
-class _AddTaskFieldState extends ConsumerState<_AddTaskField> {
+class _AddTaskFieldState extends State<_AddTaskField> {
   final _controller = TextEditingController();
 
   @override
@@ -114,27 +150,20 @@ class _AddTaskFieldState extends ConsumerState<_AddTaskField> {
   Future<void> _submit() async {
     final title = _controller.text.trim();
     if (title.isEmpty) return;
-    final day = dateKey(ref.read(selectedDateProvider));
-    await ref
-        .read(taskDaoProvider)
-        .createTask(
-          TasksCompanion.insert(
-            title: title,
-            date: day,
-            tagId: Value(ref.read(tagFilterProvider)),
-          ),
-        );
+    await widget.viewModel.addTask(title);
     _controller.clear();
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return TextField(
       controller: _controller,
-      decoration: const InputDecoration(
-        hintText: 'Add a task...',
-        prefixIcon: Icon(Icons.add),
-        border: OutlineInputBorder(),
+      decoration: InputDecoration(
+        hintText: l10n.todayAddTaskPlaceholder,
+        prefixIcon: const Icon(Icons.add),
+        border: const OutlineInputBorder(),
         isDense: true,
       ),
       onSubmitted: (_) => _submit(),
@@ -142,35 +171,40 @@ class _AddTaskFieldState extends ConsumerState<_AddTaskField> {
   }
 }
 
-class _TaskList extends ConsumerWidget {
-  const _TaskList();
+class _TaskList extends StatelessWidget {
+  const _TaskList({required this.viewModel});
+
+  final TodayViewModel viewModel;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final tasks = ref.watch(filteredTasksProvider);
+  Widget build(BuildContext context) {
+    final tasks = viewModel.filteredTasks;
+    final l10n = AppLocalizations.of(context)!;
 
     if (tasks.isEmpty) {
-      return const Center(child: Text('No tasks for this day'));
+      return Center(child: Text(l10n.todayNoTasks));
     }
     return ListView.builder(
       itemCount: tasks.length,
-      itemBuilder: (context, index) => _TaskTile(task: tasks[index]),
+      itemBuilder: (context, index) =>
+          _TaskTile(task: tasks[index], viewModel: viewModel),
     );
   }
 }
 
-class _TaskTile extends ConsumerWidget {
-  const _TaskTile({required this.task});
+class _TaskTile extends StatelessWidget {
+  const _TaskTile({required this.task, required this.viewModel});
 
   final Task task;
+  final TodayViewModel viewModel;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final tags = ref.watch(tagsProvider).value ?? [];
+  Widget build(BuildContext context) {
+    final tags = viewModel.tags;
     final tag = task.tagId == null
         ? null
         : tags.where((t) => t.id == task.tagId).firstOrNull;
-    final hours = ref.watch(taskHoursProvider).value?[task.id];
+    final hours = viewModel.taskHours[task.id];
     final colorScheme = Theme.of(context).colorScheme;
 
     return ListTile(
@@ -178,8 +212,7 @@ class _TaskTile extends ConsumerWidget {
       contentPadding: EdgeInsets.zero,
       leading: Checkbox(
         value: task.done,
-        onChanged: (value) =>
-            ref.read(taskDaoProvider).setDone(task.id, value ?? false),
+        onChanged: (value) => viewModel.setTaskDone(task.id, value ?? false),
       ),
       title: Text(
         task.title,
@@ -196,12 +229,12 @@ class _TaskTile extends ConsumerWidget {
           if (tag != null)
             CircleAvatar(radius: 5, backgroundColor: Color(tag.color)),
           if (hours != null && hours > Duration.zero) ...[
-            const SizedBox(width: 8),
+            const SizedBox(width: kSpacingSm),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
                 color: colorScheme.primaryContainer,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(kRadiusMedium),
               ),
               child: Text(
                 formatDuration(hours),
@@ -220,13 +253,16 @@ class _TaskTile extends ConsumerWidget {
   }
 }
 
-class _LoggedTimeSection extends ConsumerWidget {
-  const _LoggedTimeSection();
+class _LoggedTimeSection extends StatelessWidget {
+  const _LoggedTimeSection({required this.viewModel});
+
+  final TodayViewModel viewModel;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final entries = ref.watch(entriesForSelectedDateProvider).value ?? const [];
-    final tags = ref.watch(tagsProvider).value ?? [];
+  Widget build(BuildContext context) {
+    final entries = viewModel.entries;
+    final tags = viewModel.tags;
+    final l10n = AppLocalizations.of(context)!;
 
     if (entries.isEmpty) {
       return const SizedBox.shrink();
@@ -234,20 +270,25 @@ class _LoggedTimeSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Logged time', style: Theme.of(context).textTheme.titleSmall),
+        Text(
+          l10n.todayLoggedTimeHeader,
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
         ConstrainedBox(
           constraints: const BoxConstraints(maxHeight: 180),
-          child: ListView(
+          child: ListView.builder(
             shrinkWrap: true,
-            children: [
-              for (final entry in entries)
-                _EntryTile(
-                  entry: entry,
-                  tag: entry.tagId == null
-                      ? null
-                      : tags.where((t) => t.id == entry.tagId).firstOrNull,
-                ),
-            ],
+            itemCount: entries.length,
+            itemBuilder: (context, index) {
+              final entry = entries[index];
+              return _EntryTile(
+                entry: entry,
+                tag: entry.tagId == null
+                    ? null
+                    : tags.where((t) => t.id == entry.tagId).firstOrNull,
+                viewModel: viewModel,
+              );
+            },
           ),
         ),
       ],
@@ -255,14 +296,17 @@ class _LoggedTimeSection extends ConsumerWidget {
   }
 }
 
-class _EntryTile extends ConsumerWidget {
-  const _EntryTile({required this.entry, this.tag});
+class _EntryTile extends StatelessWidget {
+  const _EntryTile({required this.entry, this.tag, required this.viewModel});
 
   final TimeEntry entry;
   final Tag? tag;
+  final TodayViewModel viewModel;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return ListTile(
       dense: true,
       contentPadding: EdgeInsets.zero,
@@ -271,7 +315,7 @@ class _EntryTile extends ConsumerWidget {
         backgroundColor: tag == null ? Colors.grey : Color(tag!.color),
       ),
       title: Text(
-        entry.notes ?? tag?.name ?? 'Time entry',
+        entry.notes ?? tag?.name ?? l10n.defaultTimeEntryTitle,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
@@ -283,10 +327,9 @@ class _EntryTile extends ConsumerWidget {
         children: [
           Text(formatDuration(Duration(minutes: entry.minutes))),
           IconButton(
-            tooltip: 'Delete entry',
+            tooltip: l10n.deleteEntryTooltip,
             icon: const Icon(Icons.delete_outline, size: 18),
-            onPressed: () =>
-                ref.read(timeEntryDaoProvider).deleteEntry(entry.id),
+            onPressed: () => viewModel.deleteEntry(entry.id),
           ),
         ],
       ),

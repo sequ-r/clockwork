@@ -1,22 +1,21 @@
+import 'package:clockwork/core/di/app_dependencies.dart';
+import 'package:clockwork/database/database.dart';
+import 'package:clockwork/database/dates.dart';
+import 'package:clockwork/l10n/generated/app_localizations.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../database/database.dart';
-import '../../database/dates.dart';
-import '../../core/providers/database.dart';
 
 /// Minimal quick-add widget opened from the system tray: just the amount
 /// of hours to add to today and a plus button.
-class QuickAddDialog extends ConsumerStatefulWidget {
+class QuickAddDialog extends StatefulWidget {
   /// Creates the tray quick-add dialog.
   const QuickAddDialog({super.key});
 
   @override
-  ConsumerState<QuickAddDialog> createState() => _QuickAddDialogState();
+  State<QuickAddDialog> createState() => _QuickAddDialogState();
 }
 
-class _QuickAddDialogState extends ConsumerState<QuickAddDialog> {
+class _QuickAddDialogState extends State<QuickAddDialog> {
   final _hoursController = TextEditingController(text: '1');
 
   @override
@@ -35,24 +34,24 @@ class _QuickAddDialogState extends ConsumerState<QuickAddDialog> {
     final minutes = _minutes;
     if (minutes == null) return;
     final now = DateTime.now();
-    await ref
-        .read(timeEntryDaoProvider)
-        .createEntry(
-          TimeEntriesCompanion.insert(
-            date: dateKey(now),
-            minutes: minutes,
-            tagId: const Value(null),
-          ),
-        );
+    final deps = ClockworkScope.of(context);
+    await deps.timeEntryRepository.createEntry(
+      TimeEntriesCompanion.insert(
+        date: dateKey(now),
+        minutes: minutes,
+        tagId: const Value(null),
+      ),
+    );
     if (mounted) Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
     final minutes = _minutes;
+    final l10n = AppLocalizations.of(context)!;
 
     return AlertDialog(
-      title: const Text('Quick add'),
+      title: Text(l10n.quickAddTitle),
       content: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -85,7 +84,7 @@ class _QuickAddDialogState extends ConsumerState<QuickAddDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          child: Text(l10n.dialogCancel),
         ),
       ],
     );
@@ -93,7 +92,7 @@ class _QuickAddDialogState extends ConsumerState<QuickAddDialog> {
 }
 
 /// Standalone popup view for quick time entry from the system tray.
-class QuickAddPopupView extends ConsumerStatefulWidget {
+class QuickAddPopupView extends StatefulWidget {
   /// Creates the quick add popup view.
   const QuickAddPopupView({super.key, this.onComplete});
 
@@ -101,10 +100,10 @@ class QuickAddPopupView extends ConsumerStatefulWidget {
   final VoidCallback? onComplete;
 
   @override
-  ConsumerState<QuickAddPopupView> createState() => _QuickAddPopupViewState();
+  State<QuickAddPopupView> createState() => _QuickAddPopupViewState();
 }
 
-class _QuickAddPopupViewState extends ConsumerState<QuickAddPopupView> {
+class _QuickAddPopupViewState extends State<QuickAddPopupView> {
   final _hoursController = TextEditingController(text: '1');
 
   @override
@@ -123,21 +122,21 @@ class _QuickAddPopupViewState extends ConsumerState<QuickAddPopupView> {
     final minutes = _minutes;
     if (minutes == null) return;
     final now = DateTime.now();
-    await ref
-        .read(timeEntryDaoProvider)
-        .createEntry(
-          TimeEntriesCompanion.insert(
-            date: dateKey(now),
-            minutes: minutes,
-            tagId: const Value(null),
-          ),
-        );
+    final deps = ClockworkScope.of(context);
+    await deps.timeEntryRepository.createEntry(
+      TimeEntriesCompanion.insert(
+        date: dateKey(now),
+        minutes: minutes,
+        tagId: const Value(null),
+      ),
+    );
     widget.onComplete?.call();
   }
 
   @override
   Widget build(BuildContext context) {
     final minutes = _minutes;
+    final l10n = AppLocalizations.of(context)!;
 
     return Padding(
       padding: const EdgeInsets.all(24),
@@ -147,7 +146,10 @@ class _QuickAddPopupViewState extends ConsumerState<QuickAddPopupView> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('Hours:', style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                l10n.hoursFieldLabel,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(width: 12),
               SizedBox(
                 width: 100,
@@ -181,7 +183,7 @@ class _QuickAddPopupViewState extends ConsumerState<QuickAddPopupView> {
             children: [
               TextButton(
                 onPressed: () => widget.onComplete?.call(),
-                child: const Text('Cancel'),
+                child: Text(l10n.dialogCancel),
               ),
             ],
           ),

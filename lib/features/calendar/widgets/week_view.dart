@@ -1,14 +1,11 @@
+import 'package:clockwork/app/theme.dart';
+import 'package:clockwork/core/view_models/app_view_model.dart';
+import 'package:clockwork/database/database.dart';
+import 'package:clockwork/database/dates.dart';
+import 'package:clockwork/features/calendar/calendar_view_model.dart';
+import 'package:clockwork/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-
-import '../../../app/theme.dart';
-import '../../../database/database.dart';
-import '../../../database/dates.dart';
-import '../../../core/providers/database.dart';
-import '../../../core/providers/tasks.dart';
-import '../../../core/providers/time_entries.dart';
-import '../../../core/providers/ui_state.dart';
 
 /// Renders a time entry as `1h 30m - notes` (notes omitted when empty).
 String _entryLabel(TimeEntry entry) {
@@ -17,21 +14,25 @@ String _entryLabel(TimeEntry entry) {
 }
 
 /// Week overview: one column per day with tasks and tracked time.
-class WeekView extends ConsumerWidget {
+class WeekView extends StatelessWidget {
   /// Creates the week overview pane.
-  const WeekView({super.key});
+  const WeekView({super.key, required this.viewModel});
+
+  /// The calendar view model.
+  final CalendarViewModel viewModel;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final monday = startOfWeek(ref.watch(calendarAnchorProvider));
-    final tasks = ref.watch(visibleTasksProvider).value ?? [];
-    final entries = ref.watch(visibleEntriesProvider).value ?? [];
-    final dailyTotals = ref.watch(dailyTotalsProvider);
-    final tags = ref.watch(tagsProvider).value ?? [];
+  Widget build(BuildContext context) {
+    final appVm = viewModel.appViewModel;
+    final monday = startOfWeek(appVm.calendarAnchor);
+    final tasks = viewModel.tasks;
+    final entries = viewModel.entries;
+    final dailyTotals = viewModel.dailyTotals;
+    final tags = viewModel.tags;
     final tagById = {for (final t in tags) t.id: t};
-    final filter = ref.watch(tagFilterProvider);
+    final filter = appVm.tagFilter;
     final todayKey = dateKey(DateTime.now());
-    final selectedKey = dateKey(ref.watch(selectedDateProvider));
+    final selectedKey = dateKey(appVm.selectedDate);
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -65,7 +66,7 @@ class WeekView extends ConsumerWidget {
                   entries: dayEntries,
                   total: dailyTotals[key] ?? Duration.zero,
                   tagById: tagById,
-                  onTap: () => ref.read(selectedDateProvider.notifier).set(day),
+                  onTap: () => appVm.setSelectedDate(day),
                 ),
               );
             },
@@ -100,143 +101,155 @@ class _DayColumn extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context)!;
+    final semanticsLabel =
+        '${DateFormat.EEEE().format(date)}, ${date.day}, '
+        '${tasks.length} tasks, ${formatDuration(total)} tracked'
+        '${isSelected ? ", selected" : ""}${isToday ? ", today" : ""}';
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.all(kSpacingXs),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? colorScheme.primaryContainer.withAlpha(80)
-              : colorScheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(kRadiusMedium),
-          border: Border.all(
-            color: isToday ? colorScheme.primary : Colors.transparent,
+    return Semantics(
+      button: true,
+      label: semanticsLabel,
+      selected: isSelected,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          margin: const EdgeInsets.all(kSpacingXs),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? colorScheme.primaryContainer.withAlpha(80)
+                : colorScheme.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(kRadiusMedium),
+            border: Border.all(
+              color: isToday ? colorScheme.primary : Colors.transparent,
+            ),
           ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(kSpacingSm),
-              child: Column(
-                children: [
-                  Text(
-                    DateFormat.E().format(date),
-                    style: theme.textTheme.labelMedium,
-                  ),
-                  Text(
-                    '${date.day}',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: isToday ? colorScheme.primary : null,
-                      fontWeight: isToday ? FontWeight.bold : null,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(kSpacingSm),
+                child: Column(
+                  children: [
+                    Text(
+                      DateFormat.E().format(date),
+                      style: theme.textTheme.labelMedium,
                     ),
-                  ),
-                  const SizedBox(height: kSpacingXs),
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          total == Duration.zero ? '-' : formatDuration(total),
-                          style: theme.textTheme.labelLarge?.copyWith(
-                            color: colorScheme.primary,
-                          ),
-                        ),
-                        if (isOverLimit(total)) ...[
-                          const SizedBox(width: 4),
-                          Tooltip(
-                            message:
-                                'Over the '
-                                '${workingHoursLimit.inHours}h working limit',
-                            child: Icon(
-                              Icons.warning_amber_rounded,
-                              size: 16,
-                              color: colorScheme.error,
+                    Text(
+                      '${date.day}',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: isToday ? colorScheme.primary : null,
+                        fontWeight: isToday ? FontWeight.bold : null,
+                      ),
+                    ),
+                    const SizedBox(height: kSpacingXs),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            total == Duration.zero
+                                ? '-'
+                                : formatDuration(total),
+                            style: theme.textTheme.labelLarge?.copyWith(
+                              color: colorScheme.primary,
                             ),
                           ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(height: 1),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.all(6),
-                children: [
-                  for (final task in tasks)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 4),
-                      child: Row(
-                        children: [
-                          Icon(
-                            task.done
-                                ? Icons.check_circle
-                                : Icons.radio_button_unchecked,
-                            size: 14,
-                            color: task.done
-                                ? colorScheme.primary
-                                : colorScheme.outline,
-                          ),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              task.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                decoration: task.done
-                                    ? TextDecoration.lineThrough
-                                    : null,
+                          if (isOverLimit(total)) ...[
+                            const SizedBox(width: 4),
+                            Tooltip(
+                              message: l10n.overLimitTooltip(
+                                workingHoursLimit.inHours,
+                              ),
+                              child: Icon(
+                                Icons.warning_amber_rounded,
+                                size: 16,
+                                color: colorScheme.error,
                               ),
                             ),
-                          ),
+                          ],
                         ],
                       ),
                     ),
-                  for (final entry in entries)
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 4),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: colorScheme.surfaceContainerHighest.withAlpha(
-                          120,
-                        ),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 4,
-                            backgroundColor: entry.tagId == null
-                                ? Colors.grey
-                                : Color(
-                                    tagById[entry.tagId]?.color ?? 0xFF888888,
-                                  ),
-                          ),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              _entryLabel(entry),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.bodySmall,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+              const Divider(height: 1),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.all(6),
+                  children: [
+                    for (final task in tasks)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Row(
+                          children: [
+                            Icon(
+                              task.done
+                                  ? Icons.check_circle
+                                  : Icons.radio_button_unchecked,
+                              size: 14,
+                              color: task.done
+                                  ? colorScheme.primary
+                                  : colorScheme.outline,
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                task.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  decoration: task.done
+                                      ? TextDecoration.lineThrough
+                                      : null,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    for (final entry in entries)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: colorScheme.surfaceContainerHighest.withAlpha(
+                            120,
+                          ),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 4,
+                              backgroundColor: entry.tagId == null
+                                  ? Colors.grey
+                                  : Color(
+                                      tagById[entry.tagId]?.color ?? 0xFF888888,
+                                    ),
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                _entryLabel(entry),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodySmall,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

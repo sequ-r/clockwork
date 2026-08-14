@@ -1,18 +1,15 @@
+import 'package:clockwork/core/di/app_dependencies.dart';
+import 'package:clockwork/database/database.dart';
+import 'package:clockwork/database/dates.dart';
+import 'package:clockwork/main.dart';
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:clockwork/main.dart';
-import 'package:clockwork/database/database.dart';
-import 'package:clockwork/database/dates.dart';
-import 'package:clockwork/core/providers/database.dart';
-import 'package:drift/native.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 class _Harness {
-  _Harness({required this.db, required this.container});
+  _Harness({required this.dependencies});
 
-  final ClockworkDatabase db;
-  final ProviderContainer container;
+  final AppDependencies dependencies;
 }
 
 Future<void> _settle(WidgetTester tester) async {
@@ -23,26 +20,17 @@ Future<void> _settle(WidgetTester tester) async {
 
 Future<_Harness> _pumpApp(WidgetTester tester) async {
   final db = ClockworkDatabase(NativeDatabase.memory());
-  final container = ProviderContainer(
-    overrides: [databaseProvider.overrideWithValue(db)],
-  );
+  final dependencies = AppDependencies.create(database: db);
 
-  await tester.pumpWidget(
-    UncontrolledProviderScope(
-      container: container,
-      child: const ClockworkApp(),
-    ),
-  );
+  await tester.pumpWidget(ClockworkApp(dependencies: dependencies));
   await _settle(tester);
-  return _Harness(db: db, container: container);
+  return _Harness(dependencies: dependencies);
 }
 
 Future<void> _tearDown(WidgetTester tester, _Harness harness) async {
   await tester.pumpWidget(const SizedBox());
   await tester.pump(const Duration(milliseconds: 100));
-  harness.container.dispose();
-  await tester.pump(const Duration(milliseconds: 100));
-  await harness.db.close();
+  await harness.dependencies.dispose();
   await tester.pump(const Duration(milliseconds: 100));
 }
 
@@ -84,7 +72,7 @@ void main() {
     await tester.tap(find.text('Add'));
     await _settle(tester);
 
-    final entries = await harness.db.timeEntryDao.getForDate(
+    final entries = await harness.dependencies.database.timeEntryDao.getForDate(
       dateKey(DateTime.now()),
     );
     expect(entries.single.minutes, 60);

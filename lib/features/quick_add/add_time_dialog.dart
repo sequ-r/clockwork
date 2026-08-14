@@ -1,17 +1,14 @@
+import 'package:clockwork/core/di/app_dependencies.dart';
+import 'package:clockwork/database/database.dart';
+import 'package:clockwork/database/dates.dart';
+import 'package:clockwork/l10n/generated/app_localizations.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-
-import '../../database/database.dart';
-import '../../database/dates.dart';
-import '../../core/providers/database.dart';
-import '../../core/providers/tasks.dart';
-import '../../core/providers/ui_state.dart';
 
 /// Main "+ button" workflow: choose hours to add to the day, attach an
 /// optional comment and tag, then confirm.
-class AddTimeDialog extends ConsumerStatefulWidget {
+class AddTimeDialog extends StatefulWidget {
   /// Creates the dialog.
   ///
   /// When [initialTaskId] is provided, the dialog pre-selects that task.
@@ -21,10 +18,10 @@ class AddTimeDialog extends ConsumerStatefulWidget {
   final int? initialTaskId;
 
   @override
-  ConsumerState<AddTimeDialog> createState() => _AddTimeDialogState();
+  State<AddTimeDialog> createState() => _AddTimeDialogState();
 }
 
-class _AddTimeDialogState extends ConsumerState<AddTimeDialog> {
+class _AddTimeDialogState extends State<AddTimeDialog> {
   static const _quickPicks = [15, 30, 60, 120, 240];
 
   late final TextEditingController _hoursController;
@@ -32,14 +29,23 @@ class _AddTimeDialogState extends ConsumerState<AddTimeDialog> {
   late DateTime _date;
   int? _tagId;
   int? _taskId;
+  bool _initialized = false;
 
   @override
   void initState() {
     super.initState();
     _hoursController = TextEditingController(text: '1');
     _notesController = TextEditingController();
-    _date = ref.read(selectedDateProvider);
     _taskId = widget.initialTaskId;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_initialized) {
+      _date = ClockworkScope.of(context).appViewModel.selectedDate;
+      _initialized = true;
+    }
   }
 
   @override
@@ -82,159 +88,191 @@ class _AddTimeDialogState extends ConsumerState<AddTimeDialog> {
   Future<void> _confirm() async {
     final minutes = _minutes;
     if (minutes == null) return;
-    await ref
-        .read(timeEntryDaoProvider)
-        .createEntry(
-          TimeEntriesCompanion.insert(
-            date: dateKey(_date),
-            minutes: minutes,
-            tagId: Value(_tagId),
-            taskId: Value(_taskId),
-            notes: Value(
-              _notesController.text.trim().isEmpty
-                  ? null
-                  : _notesController.text.trim(),
-            ),
-          ),
-        );
+    final deps = ClockworkScope.of(context);
+    await deps.timeEntryRepository.createEntry(
+      TimeEntriesCompanion.insert(
+        date: dateKey(_date),
+        minutes: minutes,
+        tagId: Value(_tagId),
+        taskId: Value(_taskId),
+        notes: Value(
+          _notesController.text.trim().isEmpty
+              ? null
+              : _notesController.text.trim(),
+        ),
+      ),
+    );
     if (mounted) Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
-    final tags = ref.watch(tagsProvider).value ?? [];
-    final tasks = ref.watch(tasksForDateProvider(dateKey(_date))).value ?? [];
-    final eligibleTasks = tasks
-        .where((t) => _tagId == null || t.tagId == _tagId)
-        .toList();
+    final deps = ClockworkScope.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
-    return AlertDialog(
-      title: Text('Add time on ${DateFormat.MMMd().format(_date)}'),
-      content: SizedBox(
-        width: 420,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Hours', style: Theme.of(context).textTheme.labelLarge),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton.filledTonal(
-                  onPressed: () => _step(-0.5),
-                  icon: const Icon(Icons.remove),
-                ),
-                const SizedBox(width: 12),
-                SizedBox(
-                  width: 100,
-                  child: TextField(
-                    controller: _hoursController,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
+    return StreamBuilder<List<Tag>>(
+      stream: deps.tagRepository.watchAll(),
+      builder: (context, tagSnapshot) {
+        final tags = tagSnapshot.data ?? const [];
+
+        return StreamBuilder<List<Task>>(
+          stream: deps.taskRepository.watchForDate(dateKey(_date)),
+          builder: (context, taskSnapshot) {
+            final tasks = taskSnapshot.data ?? const [];
+            final eligibleTasks = tasks
+                .where((t) => _tagId == null || t.tagId == _tagId)
+                .toList();
+
+            return AlertDialog(
+              title: Text('Add time on ${DateFormat.MMMd().format(_date)}'),
+              content: SizedBox(
+                width: 420,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.hoursLabel,
+                      style: Theme.of(context).textTheme.labelLarge,
                     ),
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                      suffixText: 'h',
-                    ),
-                    textAlign: TextAlign.center,
-                    onChanged: (_) => setState(() {}),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                IconButton.filledTonal(
-                  onPressed: () => _step(0.5),
-                  icon: const Icon(Icons.add),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 6,
-              runSpacing: 4,
-              alignment: WrapAlignment.center,
-              children: [
-                for (final pick in _quickPicks)
-                  ChoiceChip(
-                    label: Text(pick < 60 ? '${pick}m' : '${pick ~/ 60}h'),
-                    selected: _minutes == pick,
-                    onSelected: (_) => _setHours(pick / 60),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<int?>(
-                    initialValue: _tagId,
-                    decoration: const InputDecoration(labelText: 'Tag'),
-                    items: [
-                      const DropdownMenuItem(value: null, child: Text('None')),
-                      for (final tag in tags)
-                        DropdownMenuItem(value: tag.id, child: Text(tag.name)),
-                    ],
-                    onChanged: (value) => setState(() {
-                      _tagId = value;
-                      if (_taskId != null) {
-                        final task = tasks
-                            .where((t) => t.id == _taskId)
-                            .firstOrNull;
-                        if (task == null ||
-                            (value != null && task.tagId != value)) {
-                          _taskId = null;
-                        }
-                      }
-                    }),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: DropdownButtonFormField<int?>(
-                    initialValue: _taskId,
-                    decoration: const InputDecoration(labelText: 'Task'),
-                    items: [
-                      const DropdownMenuItem(value: null, child: Text('None')),
-                      for (final task in eligibleTasks)
-                        DropdownMenuItem(
-                          value: task.id,
-                          child: Text(task.title),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        IconButton.filledTonal(
+                          onPressed: () => _step(-0.5),
+                          icon: const Icon(Icons.remove),
                         ),
-                    ],
-                    onChanged: (value) => setState(() => _taskId = value),
-                  ),
+                        const SizedBox(width: 12),
+                        SizedBox(
+                          width: 100,
+                          child: TextField(
+                            controller: _hoursController,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            decoration: const InputDecoration(
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                              suffixText: 'h',
+                            ),
+                            textAlign: TextAlign.center,
+                            onChanged: (_) => setState(() {}),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        IconButton.filledTonal(
+                          onPressed: () => _step(0.5),
+                          icon: const Icon(Icons.add),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      alignment: WrapAlignment.center,
+                      children: [
+                        for (final pick in _quickPicks)
+                          ChoiceChip(
+                            label: Text(
+                              pick < 60 ? '${pick}m' : '${pick ~/ 60}h',
+                            ),
+                            selected: _minutes == pick,
+                            onSelected: (_) => _setHours(pick / 60),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: DropdownButtonFormField<int?>(
+                            initialValue: _tagId,
+                            decoration: InputDecoration(
+                              labelText: l10n.tagLabel,
+                            ),
+                            items: [
+                              DropdownMenuItem(
+                                value: null,
+                                child: Text(l10n.noneOption),
+                              ),
+                              for (final tag in tags)
+                                DropdownMenuItem(
+                                  value: tag.id,
+                                  child: Text(tag.name),
+                                ),
+                            ],
+                            onChanged: (value) => setState(() {
+                              _tagId = value;
+                              if (_taskId != null) {
+                                final task = tasks
+                                    .where((t) => t.id == _taskId)
+                                    .firstOrNull;
+                                if (task == null ||
+                                    (value != null && task.tagId != value)) {
+                                  _taskId = null;
+                                }
+                              }
+                            }),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: DropdownButtonFormField<int?>(
+                            initialValue: _taskId,
+                            decoration: InputDecoration(
+                              labelText: l10n.taskLabel,
+                            ),
+                            items: [
+                              DropdownMenuItem(
+                                value: null,
+                                child: Text(l10n.noneOption),
+                              ),
+                              for (final task in eligibleTasks)
+                                DropdownMenuItem(
+                                  value: task.id,
+                                  child: Text(task.title),
+                                ),
+                            ],
+                            onChanged: (value) =>
+                                setState(() => _taskId = value),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _notesController,
+                      decoration: InputDecoration(labelText: l10n.commentLabel),
+                    ),
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: OutlinedButton.icon(
+                        onPressed: _pickDate,
+                        icon: const Icon(Icons.calendar_today, size: 16),
+                        label: Text(DateFormat.yMMMd().format(_date)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(l10n.dialogCancel),
+                ),
+                FilledButton.icon(
+                  onPressed: _minutes != null ? _confirm : null,
+                  icon: const Icon(Icons.check),
+                  label: Text(l10n.dialogAdd),
                 ),
               ],
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _notesController,
-              decoration: const InputDecoration(labelText: 'Comment'),
-            ),
-            const SizedBox(height: 12),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: OutlinedButton.icon(
-                onPressed: _pickDate,
-                icon: const Icon(Icons.calendar_today, size: 16),
-                label: Text(DateFormat.yMMMd().format(_date)),
-              ),
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        FilledButton.icon(
-          onPressed: _minutes != null ? _confirm : null,
-          icon: const Icon(Icons.check),
-          label: const Text('Add'),
-        ),
-      ],
+            );
+          },
+        );
+      },
     );
   }
 }

@@ -1,29 +1,31 @@
+import 'package:clockwork/app/theme.dart';
+import 'package:clockwork/core/view_models/app_view_model.dart';
+import 'package:clockwork/database/dates.dart';
+import 'package:clockwork/features/calendar/calendar_view_model.dart';
+import 'package:clockwork/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../app/theme.dart';
-import '../../../database/dates.dart';
-import '../../../core/providers/tasks.dart';
-import '../../../core/providers/time_entries.dart';
-import '../../../core/providers/ui_state.dart';
 
 /// Month overview: calendar grid with per-day totals and task counts.
-class MonthView extends ConsumerWidget {
+class MonthView extends StatelessWidget {
   /// Creates the month overview pane.
-  const MonthView({super.key});
+  const MonthView({super.key, required this.viewModel});
+
+  /// The calendar view model.
+  final CalendarViewModel viewModel;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final anchor = ref.watch(calendarAnchorProvider);
+  Widget build(BuildContext context) {
+    final appVm = viewModel.appViewModel;
+    final anchor = appVm.calendarAnchor;
     final firstOfMonth = DateTime(anchor.year, anchor.month, 1);
     final daysInMonth = DateTime(anchor.year, anchor.month + 1, 0).day;
     // Monday-first week: how many blanks to insert before day 1?
     final leadingBlanks = firstOfMonth.weekday - DateTime.monday;
-    final tasks = ref.watch(visibleTasksProvider).value ?? [];
-    final dailyTotals = ref.watch(dailyTotalsProvider);
-    final filter = ref.watch(tagFilterProvider);
+    final tasks = viewModel.tasks;
+    final dailyTotals = viewModel.dailyTotals;
+    final filter = appVm.tagFilter;
     final todayKey = dateKey(DateTime.now());
-    final selectedKey = dateKey(ref.watch(selectedDateProvider));
+    final selectedKey = dateKey(appVm.selectedDate);
 
     final taskCounts = <String, int>{};
     for (final task in tasks) {
@@ -31,9 +33,6 @@ class MonthView extends ConsumerWidget {
       taskCounts[task.date] = (taskCounts[task.date] ?? 0) + 1;
     }
 
-    // Build a flat list of cells, then chunk it into rows of 7. This
-    // replaces the previous hand-rolled `Expanded` math which broke when
-    // the leading blank count didn't divide evenly.
     final cells = <Widget>[
       for (var i = 0; i < leadingBlanks; i++) const _EmptyCell(),
       for (var day = 1; day <= daysInMonth; day++)
@@ -47,14 +46,11 @@ class MonthView extends ConsumerWidget {
               taskCount: taskCounts[key] ?? 0,
               isToday: key == todayKey,
               isSelected: key == selectedKey,
-              onTap: () {
-                ref.read(selectedDateProvider.notifier).set(date);
-              },
+              onTap: () => appVm.setSelectedDate(date),
             );
           },
         ),
     ];
-    // Pad the last row so the grid is always a rectangle.
     while (cells.length % 7 != 0) {
       cells.add(const _EmptyCell());
     }
@@ -123,72 +119,81 @@ class _DayCell extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final overLimit = isOverLimit(total);
+    final l10n = AppLocalizations.of(context)!;
+    final semanticsLabel =
+        '${date.day}, $taskCount tasks, ${formatDuration(total)} tracked'
+        '${isSelected ? ", selected" : ""}${isToday ? ", today" : ""}';
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.all(2),
-        padding: const EdgeInsets.all(kSpacingXs + 2),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? colorScheme.primaryContainer.withAlpha(80)
-              : colorScheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(kRadiusSmall + 2),
-          border: Border.all(
-            color: isToday ? colorScheme.primary : Colors.transparent,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text(
-                  '${date.day}',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: isToday ? FontWeight.bold : null,
-                    color: isToday ? colorScheme.primary : null,
-                  ),
-                ),
-                const Spacer(),
-                if (taskCount > 0)
-                  Text(
-                    '$taskCount ${taskCount == 1 ? 'task' : 'tasks'}',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: colorScheme.outline,
-                    ),
-                  ),
-              ],
+    return Semantics(
+      button: true,
+      label: semanticsLabel,
+      selected: isSelected,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          margin: const EdgeInsets.all(2),
+          padding: const EdgeInsets.all(kSpacingXs + 2),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? colorScheme.primaryContainer.withAlpha(80)
+                : colorScheme.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(kRadiusSmall + 2),
+            border: Border.all(
+              color: isToday ? colorScheme.primary : Colors.transparent,
             ),
-            const Spacer(),
-            if (total > Duration.zero)
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               Row(
                 children: [
                   Text(
-                    formatDuration(total),
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: overLimit
-                          ? colorScheme.error
-                          : colorScheme.primary,
-                      fontWeight: FontWeight.w600,
+                    '${date.day}',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: isToday ? FontWeight.bold : null,
+                      color: isToday ? colorScheme.primary : null,
                     ),
                   ),
-                  if (overLimit) ...[
-                    const SizedBox(width: 2),
-                    Tooltip(
-                      message:
-                          'Over the '
-                          '${workingHoursLimit.inHours}h working limit',
-                      child: Icon(
-                        Icons.warning_amber_rounded,
-                        size: 14,
-                        color: colorScheme.error,
+                  const Spacer(),
+                  if (taskCount > 0)
+                    Text(
+                      '$taskCount ${taskCount == 1 ? "task" : "tasks"}',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: colorScheme.outline,
                       ),
                     ),
-                  ],
                 ],
               ),
-          ],
+              const Spacer(),
+              if (total > Duration.zero)
+                Row(
+                  children: [
+                    Text(
+                      formatDuration(total),
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: overLimit
+                            ? colorScheme.error
+                            : colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (overLimit) ...[
+                      const SizedBox(width: 2),
+                      Tooltip(
+                        message: l10n.overLimitTooltip(
+                          workingHoursLimit.inHours,
+                        ),
+                        child: Icon(
+                          Icons.warning_amber_rounded,
+                          size: 14,
+                          color: colorScheme.error,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+            ],
+          ),
         ),
       ),
     );

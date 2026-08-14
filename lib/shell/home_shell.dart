@@ -1,40 +1,41 @@
+import 'package:clockwork/core/di/app_dependencies.dart';
+import 'package:clockwork/core/view_models/app_view_model.dart';
+import 'package:clockwork/features/calendar/calendar_panel.dart';
+import 'package:clockwork/features/quick_add/add_time_dialog.dart';
+import 'package:clockwork/features/quick_add/quick_add_dialog.dart';
+import 'package:clockwork/features/quick_add/quick_add_host.dart';
+import 'package:clockwork/features/tags/tag_manager_dialog.dart';
+import 'package:clockwork/features/today/today_screen.dart';
+import 'package:clockwork/features/today/widgets/tag_filter_bar.dart';
+import 'package:clockwork/l10n/generated/app_localizations.dart';
+import 'package:clockwork/services/tray_service.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
-
-import '../core/providers/ui_state.dart';
-import '../features/calendar/calendar_panel.dart';
-import '../features/quick_add/add_time_dialog.dart';
-import '../features/quick_add/quick_add_dialog.dart';
-import '../features/quick_add/quick_add_host.dart';
-import '../features/tags/tag_manager_dialog.dart';
-import '../features/today/today_screen.dart';
-import '../features/today/widgets/tag_filter_bar.dart';
-import '../services/tray_service.dart';
 
 enum _ProjectsMenuAction { manageProjects, addProject }
 
 /// Top-level shell of the app: AppBar, responsive layout (wide vs narrow),
 /// FAB, tray integration.
-///
-/// Concrete panes (Today / Calendar / Tags) are mounted as children of
-/// this widget.
-class HomeShell extends ConsumerStatefulWidget {
+class HomeShell extends StatefulWidget {
   /// Creates the home shell.
   const HomeShell({super.key});
 
   @override
-  ConsumerState<HomeShell> createState() => _HomeShellState();
+  State<HomeShell> createState() => _HomeShellState();
 }
 
-class _HomeShellState extends ConsumerState<HomeShell> with WindowListener {
+class _HomeShellState extends State<HomeShell> with WindowListener {
+  bool _initializedTray = false;
+
   @override
-  void initState() {
-    super.initState();
-    if (TrayService.isSupported) {
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_initializedTray && TrayService.isSupported) {
+      _initializedTray = true;
       windowManager.addListener(this);
+      final trayService = ClockworkScope.of(context).trayService;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(trayServiceProvider).init();
+        trayService.init();
       });
     }
   }
@@ -49,7 +50,7 @@ class _HomeShellState extends ConsumerState<HomeShell> with WindowListener {
 
   @override
   void onWindowClose() {
-    ref.read(trayServiceProvider).closeTrayPopup();
+    ClockworkScope.of(context).trayService.closeTrayPopup();
   }
 
   @override
@@ -61,102 +62,111 @@ class _HomeShellState extends ConsumerState<HomeShell> with WindowListener {
 
   @override
   Widget build(BuildContext context) {
-    final popupMode = ref.watch(activeTrayPopupProvider);
+    final deps = ClockworkScope.of(context);
+    final appVm = deps.appViewModel;
+    final l10n = AppLocalizations.of(context)!;
 
-    if (popupMode == TrayPopupMode.quickAdd) {
-      return _TrayPopupWindowContainer(
-        title: 'Quick add time',
-        onClose: () => ref.read(trayServiceProvider).closeTrayPopup(),
-        child: QuickAddPopupView(
-          onComplete: () => ref.read(trayServiceProvider).closeTrayPopup(),
-        ),
-      );
-    }
+    return ListenableBuilder(
+      listenable: appVm,
+      builder: (context, _) {
+        final popupMode = appVm.activeTrayPopup;
 
-    if (popupMode == TrayPopupMode.manageProjects) {
-      return _TrayPopupWindowContainer(
-        title: 'Manage projects',
-        onClose: () => ref.read(trayServiceProvider).closeTrayPopup(),
-        child: const TagManagerPopupView(),
-      );
-    }
+        if (popupMode == TrayPopupMode.quickAdd) {
+          return _TrayPopupWindowContainer(
+            title: l10n.quickAddTimeTitle,
+            onClose: () => deps.trayService.closeTrayPopup(),
+            child: QuickAddPopupView(
+              onComplete: () => deps.trayService.closeTrayPopup(),
+            ),
+          );
+        }
 
-    return QuickAddDialogHost(
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Clockwork'),
-          actions: [
-            PopupMenuButton<_ProjectsMenuAction>(
-              tooltip: 'Projects menu',
-              icon: const Icon(Icons.folder_outlined),
-              onSelected: (action) {
-                switch (action) {
-                  case _ProjectsMenuAction.manageProjects:
-                    showDialog<void>(
-                      context: context,
-                      builder: (_) => const TagManagerDialog(),
-                    );
-                  case _ProjectsMenuAction.addProject:
-                    showDialog<void>(
-                      context: context,
-                      builder: (_) => const TagEditDialog(),
-                    );
-                }
-              },
-              itemBuilder: (context) => const [
-                PopupMenuItem(
-                  value: _ProjectsMenuAction.manageProjects,
-                  child: Row(
-                    children: [
-                      Icon(Icons.folder_special_outlined),
-                      SizedBox(width: 12),
-                      Text('Manage projects'),
-                    ],
-                  ),
-                ),
-                PopupMenuItem(
-                  value: _ProjectsMenuAction.addProject,
-                  child: Row(
-                    children: [
-                      Icon(Icons.create_new_folder_outlined),
-                      SizedBox(width: 12),
-                      Text('New project'),
-                    ],
-                  ),
+        if (popupMode == TrayPopupMode.manageProjects) {
+          return _TrayPopupWindowContainer(
+            title: l10n.manageProjects,
+            onClose: () => deps.trayService.closeTrayPopup(),
+            child: const TagManagerPopupView(),
+          );
+        }
+
+        return QuickAddDialogHost(
+          child: Scaffold(
+            appBar: AppBar(
+              title: Text(l10n.appTitle),
+              actions: [
+                PopupMenuButton<_ProjectsMenuAction>(
+                  tooltip: l10n.projectsMenuTooltip,
+                  icon: const Icon(Icons.folder_outlined),
+                  onSelected: (action) {
+                    switch (action) {
+                      case _ProjectsMenuAction.manageProjects:
+                        showDialog<void>(
+                          context: context,
+                          builder: (_) => const TagManagerDialog(),
+                        );
+                      case _ProjectsMenuAction.addProject:
+                        showDialog<void>(
+                          context: context,
+                          builder: (_) => const TagEditDialog(),
+                        );
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: _ProjectsMenuAction.manageProjects,
+                      child: Row(
+                        children: [
+                          const Icon(Icons.folder_special_outlined),
+                          const SizedBox(width: 12),
+                          Text(l10n.manageProjects),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: _ProjectsMenuAction.addProject,
+                      child: Row(
+                        children: [
+                          const Icon(Icons.create_new_folder_outlined),
+                          const SizedBox(width: 12),
+                          Text(l10n.newProject),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
-        ),
-        body: LayoutBuilder(
-          builder: (context, constraints) {
-            final isWide = constraints.maxWidth >= 720;
-            if (isWide) {
-              return const Column(
-                children: [
-                  TagFilterBar(),
-                  Expanded(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        SizedBox(width: 380, child: TodayScreen()),
-                        VerticalDivider(width: 1, thickness: 1),
-                        Expanded(child: CalendarPanel()),
-                      ],
-                    ),
-                  ),
-                ],
-              );
-            }
-            return const _NarrowLayout();
-          },
-        ),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: _openAddTimeDialog,
-          icon: const Icon(Icons.add),
-          label: const Text('Add time'),
-        ),
-      ),
+            body: LayoutBuilder(
+              builder: (context, constraints) {
+                final isWide = constraints.maxWidth >= 720;
+                if (isWide) {
+                  return const Column(
+                    children: [
+                      TagFilterBar(),
+                      Expanded(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            SizedBox(width: 380, child: TodayScreen()),
+                            VerticalDivider(width: 1, thickness: 1),
+                            Expanded(child: CalendarPanel()),
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+                }
+                return const _NarrowLayout();
+              },
+            ),
+            floatingActionButton: FloatingActionButton.extended(
+              onPressed: _openAddTimeDialog,
+              icon: const Icon(Icons.add),
+              label: Text(l10n.addTimeButton),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -175,6 +185,8 @@ class _TrayPopupWindowContainer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -195,7 +207,7 @@ class _TrayPopupWindowContainer extends StatelessWidget {
                   const Spacer(),
                   IconButton(
                     icon: const Icon(Icons.close, size: 18),
-                    tooltip: 'Close',
+                    tooltip: l10n.dialogClose,
                     onPressed: onClose,
                   ),
                 ],
@@ -209,34 +221,45 @@ class _TrayPopupWindowContainer extends StatelessWidget {
   }
 }
 
-class _NarrowLayout extends ConsumerWidget {
+class _NarrowLayout extends StatelessWidget {
   const _NarrowLayout();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final tab = ref.watch(homeTabProvider);
-    return Column(
-      children: [
-        const TagFilterBar(),
-        Expanded(
-          child: IndexedStack(
-            index: tab,
-            children: const [TodayScreen(), CalendarPanel()],
-          ),
-        ),
-        NavigationBar(
-          selectedIndex: tab,
-          onDestinationSelected: (index) =>
-              ref.read(homeTabProvider.notifier).set(index),
-          destinations: const [
-            NavigationDestination(icon: Icon(Icons.checklist), label: 'Today'),
-            NavigationDestination(
-              icon: Icon(Icons.calendar_month),
-              label: 'Calendar',
+  Widget build(BuildContext context) {
+    final appVm = ClockworkScope.of(context).appViewModel;
+    final l10n = AppLocalizations.of(context)!;
+
+    return ListenableBuilder(
+      listenable: appVm,
+      builder: (context, _) {
+        final tab = appVm.homeTab;
+
+        return Column(
+          children: [
+            const TagFilterBar(),
+            Expanded(
+              child: IndexedStack(
+                index: tab,
+                children: const [TodayScreen(), CalendarPanel()],
+              ),
+            ),
+            NavigationBar(
+              selectedIndex: tab,
+              onDestinationSelected: appVm.setHomeTab,
+              destinations: [
+                NavigationDestination(
+                  icon: const Icon(Icons.checklist),
+                  label: l10n.todayTab,
+                ),
+                NavigationDestination(
+                  icon: const Icon(Icons.calendar_month),
+                  label: l10n.calendarTab,
+                ),
+              ],
             ),
           ],
-        ),
-      ],
+        );
+      },
     );
   }
 }

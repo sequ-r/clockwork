@@ -9,11 +9,10 @@
 /// same tokens are used to produce Material 3 colors.
 library;
 
+import 'package:clockwork/app/tokens.dart';
 import 'package:flutter/material.dart';
 
-import 'tokens.dart';
-
-export 'tokens.dart';
+export 'package:clockwork/app/tokens.dart';
 
 /// Light theme: Adwaita-styled Material 3 colors.
 ThemeData buildLightTheme() {
