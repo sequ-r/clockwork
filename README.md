@@ -13,19 +13,92 @@ Daily task management and project time tracking, built with Flutter.
 - **Projects**: tag system for projects and subprojects, with color coding
   and filtering.
 - **SQLite database** (drift) shared between the GUI and the CLI.
-- **System tray** (desktop only): "Add time..." opens a minimal hours + plus
+- **System tray** (desktop): "Add time..." opens a minimal hours + plus
   widget; closing/minimizing hides the app to the tray.
 
-Platforms: Linux desktop and Android.
+---
 
-## Run the GUI
+## Flavors & Platform Design Systems
 
+Clockwork supports multi-platform flavors, each tailored with its native design system and capabilities:
+
+| Flavor | Target | UI Framework / Packages | Highlights |
+| :--- | :--- | :--- | :--- |
+| **Linux Desktop** | Linux | `package:yaru` (Canonical) | Canonical Yaru theme, `YaruTitleBar`, system tray integration, and desktop windowing. |
+| **Android** | Android / Mobile | `Material 3 Expressive` + `package:dual_screen` | Expressive M3 theme, squircle curves, tonal elevation, and foldable phone hinge responsiveness. |
+| **Apple** | macOS / iOS | `package:flutter/cupertino.dart` | Apple HIG Cupertino design, `CupertinoPageScaffold`, `CupertinoNavigationBar`, `CupertinoTabBar`, `CupertinoActionSheet`. |
+| **Windows** | Windows | `package:fluent_ui` | Microsoft Fluent Design System, `NavigationView` with acrylic sidebar, Windows 11 controls, and tray support. |
+
+---
+
+## Run the App
+
+### Linux Flavor (Canonical Yaru)
 ```sh
-flutter run -d linux
-flutter run            # Android device/emulator
+flutter run -t lib/main_linux.dart -d linux
 ```
 
-## Build the CLI
+### Android Flavor (Material 3 Expressive & Foldables)
+```sh
+flutter run --flavor android -t lib/main_android.dart -d android
+```
+
+### Apple Flavor (macOS / iOS Cupertino)
+```sh
+# macOS Desktop
+flutter run -t lib/main_apple.dart -d macos
+
+# iOS Simulator / Device
+flutter run -t lib/main_apple.dart -d ios
+```
+
+### Windows Flavor (Microsoft Fluent UI)
+```sh
+flutter run -t lib/main_windows.dart -d windows
+```
+
+### Auto-detect / Default
+```sh
+flutter run
+```
+
+---
+
+## Build Instructions
+
+### Linux Desktop Binary
+```sh
+flutter build linux -t lib/main_linux.dart --release
+# Output: build/linux/x64/release/bundle/
+```
+
+### Android APK / App Bundle
+```sh
+# Build APK
+flutter build apk --flavor android -t lib/main_android.dart --release
+
+# Build App Bundle (AAB)
+flutter build appbundle --flavor android -t lib/main_android.dart --release
+```
+
+### macOS Application / iOS IPA
+```sh
+# macOS App
+flutter build macos -t lib/main_apple.dart --release
+
+# iOS Bundle
+flutter build ipa -t lib/main_apple.dart --release
+```
+
+### Windows Desktop Executable
+```sh
+flutter build windows -t lib/main_windows.dart --release
+# Output: build/windows/x64/runner/Release/
+```
+
+---
+
+## Build & Run the CLI
 
 ```sh
 dart build cli -o build/cli
@@ -57,60 +130,65 @@ clockwork project list | clockwork project rm NAME_OR_ID
 Duration formats: `+2`, `2`, `1.5h`, `90m`, `1h30m`. A bare number is hours.
 Day formats: `today`, `yesterday`, `YYYY-MM-DD`.
 
-## Development
+---
+
+## Development & Testing
 
 ```sh
-dart run build_runner build                 # after schema changes
-flutter gen-l10n                            # after adding strings
-flutter analyze
+# Run static analysis
+dart analyze
+
+# Run test suite
 flutter test
+
+# Rebuild code generation & Drift schema migrations (after schema changes)
+dart run build_runner build --delete-conflicting-outputs
+
+# Generate localization files
+flutter gen-l10n
 ```
 
-## Project layout
+---
+
+## Project Layout
 
 ```
 lib/
-  app/             # bootstrap, theming, design tokens (Phase 0/1)
-    app.dart       # ClockworkApp root
-    theme.dart     # Material 3 / libadwaita-flavored ThemeData
-    tokens.dart    # Flutter-free design tokens (used by CLI too)
-
+  app/                    # Core app bootstrapping and design tokens
+    app.dart              # ClockworkApp root with flavor switching
+    theme.dart            # Base theme definitions
+    tokens.dart           # Design tokens (shared with CLI)
+  flavors/                # Platform flavors and UI shells
+    flavor_config.dart    # FlavorConfig enum and platform capability detection
+    linux/                # Linux Desktop (Canonical Yaru design & titlebar)
+      linux_theme.dart
+      linux_home_shell.dart
+    android/              # Android (Material 3 Expressive & Foldable two-pane)
+      android_expressive_theme.dart
+      android_foldable_home_shell.dart
+    apple/                # Apple macOS / iOS (Cupertino design system)
+      apple_theme.dart
+      apple_home_shell.dart
+    windows/              # Windows (Microsoft Fluent UI & NavigationView)
+      windows_theme.dart
+      windows_home_shell.dart
   core/
-    database/      # drift schema, DAOs, paths, dates (unchanged)
-    providers/     # Riverpod providers, split per concern:
-      database.dart  # DB & DAO providers
-      ui_state.dart  # selected date, filter, calendar view
-      tasks.dart     # task streams & computed views
-      time_entries.dart  # entry streams & aggregates
-
-  features/        # one folder per UI feature
-    today/         # left pane (today_screen.dart + tag_filter_bar)
-    calendar/      # right pane (calendar_panel + week/month views)
-    tags/          # tag manager dialog
-    quick_add/     # add-time & quick-add dialogs + dialog host
-    tasks/         # task edit dialog
-
-  shell/
-    home_shell.dart  # responsive layout, AppBar, FAB, tray lifecycle
-    windowing.dart   # GTK4/libadwaita headerbar hook (MethodChannel)
-
+    di/                   # Dependency injection scoping (ClockworkScope)
+    view_models/          # Core AppViewModel (ChangeNotifier)
+  data/
+    repositories/         # Task, Tag, and TimeEntry repositories
+  database/               # Drift schema, DAOs, dates, and database backup
+  features/               # Feature widgets
+    today/                # Today task list & logged time section
+    calendar/             # Calendar panel with week/month grid
+    tags/                 # Project & tag manager dialogs
+    quick_add/            # Quick-add & add-time dialogs
+    tasks/                # Task edit dialog
   services/
-    tray_service.dart  # system tray integration
-  core/providers/
-    database.dart      # Provider<ClockworkDatabase> + DAOs + tags stream
-    tasks.dart         # StreamProvider.family for tasks/entries per day
-    time_entries.dart  # totals, dailyTotals, taskHours, visibleTagTotals
-    ui_state.dart      # code-generated @riverpod notifiers (UI state)
-                       #   + ui_state.g.dart
+    tray_service.dart     # Desktop system tray integration
+  main_linux.dart         # Linux flavor entry point
+  main_android.dart       # Android flavor entry point
+  main_apple.dart         # Apple macOS/iOS flavor entry point
+  main_windows.dart       # Windows flavor entry point
+  main.dart               # Default entry point
 ```
-
-The CLI lives in `bin/clockwork.dart` and shares the data layer (database,
-dates, paths, tokens) with the GUI.
-
-## Rework in progress
-
-A multi-phase rework is underway; see `docs/REWORK_PLAN.md`. The current
-Linux build uses the GTK3 Flutter embedder. The libadwaita headerbar
-described in earlier revisions is not implemented and the
-`MethodChannel('dev.sequ.clockwork/headerbar')` calls are intentionally
-no-ops until a native shim is added.

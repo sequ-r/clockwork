@@ -41,7 +41,8 @@ class AppViewModel extends ChangeNotifier {
     DateTime? initialCalendarAnchor,
     CalendarView initialCalendarView = CalendarView.week,
   }) : _selectedDate = initialSelectedDate ?? _todayMidnight(),
-       _calendarAnchor = initialCalendarAnchor ?? _todayMidnight(),
+       _calendarAnchor =
+           initialCalendarAnchor ?? initialSelectedDate ?? _todayMidnight(),
        _calendarViewMode = initialCalendarView;
 
   DateTime _selectedDate;

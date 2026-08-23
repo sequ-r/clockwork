@@ -25,6 +25,31 @@ android {
         versionName = flutter.versionName
     }
 
+    flavorDimensions += listOf("platform")
+
+    productFlavors {
+        create("android") {
+            dimension = "platform"
+            applicationIdSuffix = ".android"
+            versionNameSuffix = "-android"
+        }
+        create("linux") {
+            dimension = "platform"
+            applicationIdSuffix = ".linux"
+            versionNameSuffix = "-linux"
+        }
+        create("apple") {
+            dimension = "platform"
+            applicationIdSuffix = ".apple"
+            versionNameSuffix = "-apple"
+        }
+        create("windows") {
+            dimension = "platform"
+            applicationIdSuffix = ".windows"
+            versionNameSuffix = "-windows"
+        }
+    }
+
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.
