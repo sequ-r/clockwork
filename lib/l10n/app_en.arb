@@ -188,5 +188,47 @@
   "projectLabel": "Project",
   "@projectLabel": {
     "description": "Project dropdown label"
+  },
+  "clockTab": "Clock",
+  "@clockTab": {
+    "description": "Navigation label for the weekly clock main screen"
+  },
+  "clockTotalWorkedHours": "Total worked hours\nThis week",
+  "@clockTotalWorkedHours": {
+    "description": "Heading above the weekly total clock display"
+  },
+  "clockAddButton": "Add",
+  "@clockAddButton": {
+    "description": "Confirm button label when adding time"
+  },
+  "clockRemoveButton": "Remove",
+  "@clockRemoveButton": {
+    "description": "Confirm button label when removing time"
+  },
+  "clockDecreaseTooltip": "Decrease amount",
+  "@clockDecreaseTooltip": {
+    "description": "Tooltip for the minus stepper button"
+  },
+  "clockIncreaseTooltip": "Increase amount",
+  "@clockIncreaseTooltip": {
+    "description": "Tooltip for the plus stepper button"
+  },
+  "clockAddedToast": "{amount} added to today",
+  "@clockAddedToast": {
+    "description": "Confirmation after adding time from the clock screen",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "clockRemovedToast": "{amount} removed from today",
+  "@clockRemovedToast": {
+    "description": "Confirmation after removing time from the clock screen",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
   }
 }

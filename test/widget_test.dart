@@ -37,14 +37,28 @@ Future<void> _tearDown(WidgetTester tester, _Harness harness) async {
 }
 
 void main() {
-  testWidgets('home screen shows welcome message and add button', (
-    tester,
-  ) async {
+  testWidgets('home screen opens on the weekly clock', (tester) async {
     final harness = await _pumpApp(tester);
 
+    expect(find.textContaining('Total worked hours'), findsOneWidget);
+    expect(find.text('00:00:00'), findsOneWidget);
+    expect(find.text('0.5h'), findsOneWidget);
+    expect(find.text('Add'), findsOneWidget);
+
+    await _tearDown(tester, harness);
+  });
+
+  testWidgets('today and calendar tabs are reachable', (tester) async {
+    final harness = await _pumpApp(tester);
+
+    await tester.tap(find.text('Today'));
+    await _settle(tester);
     expect(find.textContaining('Good '), findsOneWidget);
-    expect(find.text('Add time'), findsOneWidget);
     expect(find.text('Add a task...'), findsOneWidget);
+    expect(find.text('Add time'), findsOneWidget);
+
+    await tester.tap(find.text('Calendar'));
+    await _settle(tester);
     expect(find.text('Week'), findsOneWidget);
     expect(find.text('Month'), findsOneWidget);
 
@@ -53,6 +67,9 @@ void main() {
 
   testWidgets('adding a task shows it in the list', (tester) async {
     final harness = await _pumpApp(tester);
+
+    await tester.tap(find.text('Today'));
+    await _settle(tester);
 
     await tester.enterText(find.byType(TextField), 'Write report');
     await tester.testTextInput.receiveAction(TextInputAction.done);
@@ -65,6 +82,9 @@ void main() {
 
   testWidgets('add time dialog accepts hours', (tester) async {
     final harness = await _pumpApp(tester);
+
+    await tester.tap(find.text('Today'));
+    await _settle(tester);
 
     await tester.tap(find.text('Add time'));
     await _settle(tester);

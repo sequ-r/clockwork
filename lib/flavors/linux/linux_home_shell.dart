@@ -1,6 +1,7 @@
 import 'package:clockwork/core/di/app_dependencies.dart';
 import 'package:clockwork/core/view_models/app_view_model.dart';
 import 'package:clockwork/features/calendar/calendar_panel.dart';
+import 'package:clockwork/features/clock/weekly_clock_screen.dart';
 import 'package:clockwork/features/quick_add/add_time_dialog.dart';
 import 'package:clockwork/features/quick_add/quick_add_dialog.dart';
 import 'package:clockwork/features/quick_add/quick_add_host.dart';
@@ -147,29 +148,24 @@ class _LinuxHomeShellState extends State<LinuxHomeShell> with WindowListener {
               builder: (context, constraints) {
                 final isWide = constraints.maxWidth >= 720;
                 if (isWide) {
-                  return const Column(
-                    children: [
-                      TagFilterBar(),
-                      Expanded(
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            SizedBox(width: 380, child: TodayScreen()),
-                            VerticalDivider(width: 1, thickness: 1),
-                            Expanded(child: CalendarPanel()),
-                          ],
-                        ),
-                      ),
-                    ],
-                  );
+                  return _LinuxWideLayout(appViewModel: appVm, l10n: l10n);
                 }
-                return const _LinuxNarrowLayout();
+                return _LinuxNarrowLayout(l10n: l10n);
               },
             ),
-            floatingActionButton: FloatingActionButton.extended(
-              onPressed: _openAddTimeDialog,
-              icon: const Icon(Icons.add),
-              label: Text(l10n.addTimeButton),
+            floatingActionButton: ListenableBuilder(
+              listenable: appVm,
+              builder: (context, _) {
+                // The clock screen has its own inline add controls.
+                if (appVm.homeTab == 0) {
+                  return const SizedBox.shrink();
+                }
+                return FloatingActionButton.extended(
+                  onPressed: _openAddTimeDialog,
+                  icon: const Icon(Icons.add),
+                  label: Text(l10n.addTimeButton),
+                );
+              },
             ),
           ),
         );
@@ -228,13 +224,80 @@ class _LinuxTrayPopupWindow extends StatelessWidget {
   }
 }
 
+class _LinuxWideLayout extends StatelessWidget {
+  const _LinuxWideLayout({required this.appViewModel, required this.l10n});
+
+  final AppViewModel appViewModel;
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: appViewModel,
+      builder: (context, _) {
+        final tab = appViewModel.homeTab;
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            NavigationRail(
+              selectedIndex: tab,
+              onDestinationSelected: appViewModel.setHomeTab,
+              labelType: NavigationRailLabelType.all,
+              destinations: [
+                NavigationRailDestination(
+                  icon: const Icon(Icons.schedule),
+                  label: Text(l10n.clockTab),
+                ),
+                NavigationRailDestination(
+                  icon: const Icon(Icons.checklist),
+                  label: Text(l10n.todayTab),
+                ),
+                NavigationRailDestination(
+                  icon: const Icon(Icons.calendar_month),
+                  label: Text(l10n.calendarTab),
+                ),
+              ],
+            ),
+            const VerticalDivider(width: 1, thickness: 1),
+            Expanded(
+              child: IndexedStack(
+                index: tab,
+                children: const [
+                  WeeklyClockScreen(),
+                  _LinuxTodayPane(),
+                  CalendarPanel(),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _LinuxTodayPane extends StatelessWidget {
+  const _LinuxTodayPane();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      children: [
+        TagFilterBar(),
+        Expanded(child: TodayScreen()),
+      ],
+    );
+  }
+}
+
 class _LinuxNarrowLayout extends StatelessWidget {
-  const _LinuxNarrowLayout();
+  const _LinuxNarrowLayout({required this.l10n});
+
+  final AppLocalizations l10n;
 
   @override
   Widget build(BuildContext context) {
     final appVm = ClockworkScope.of(context).appViewModel;
-    final l10n = AppLocalizations.of(context)!;
 
     return ListenableBuilder(
       listenable: appVm,
@@ -243,17 +306,24 @@ class _LinuxNarrowLayout extends StatelessWidget {
 
         return Column(
           children: [
-            const TagFilterBar(),
             Expanded(
               child: IndexedStack(
                 index: tab,
-                children: const [TodayScreen(), CalendarPanel()],
+                children: const [
+                  WeeklyClockScreen(),
+                  _LinuxTodayPane(),
+                  CalendarPanel(),
+                ],
               ),
             ),
             NavigationBar(
               selectedIndex: tab,
               onDestinationSelected: appVm.setHomeTab,
               destinations: [
+                NavigationDestination(
+                  icon: const Icon(Icons.schedule),
+                  label: l10n.clockTab,
+                ),
                 NavigationDestination(
                   icon: const Icon(Icons.checklist),
                   label: l10n.todayTab,

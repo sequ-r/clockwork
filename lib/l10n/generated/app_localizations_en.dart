@@ -148,4 +148,32 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get projectLabel => 'Project';
+
+  @override
+  String get clockTab => 'Clock';
+
+  @override
+  String get clockTotalWorkedHours => 'Total worked hours\nThis week';
+
+  @override
+  String get clockAddButton => 'Add';
+
+  @override
+  String get clockRemoveButton => 'Remove';
+
+  @override
+  String get clockDecreaseTooltip => 'Decrease amount';
+
+  @override
+  String get clockIncreaseTooltip => 'Increase amount';
+
+  @override
+  String clockAddedToast(String amount) {
+    return '$amount added to today';
+  }
+
+  @override
+  String clockRemovedToast(String amount) {
+    return '$amount removed from today';
+  }
 }

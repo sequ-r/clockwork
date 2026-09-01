@@ -129,6 +129,10 @@ class TimeEntryDao extends DatabaseAccessor<ClockworkDatabase>
   Future<int> createEntry(TimeEntriesCompanion companion) =>
       into(timeEntries).insert(companion);
 
+  /// Replaces [entry] in the database.
+  Future<bool> updateEntry(TimeEntry entry) =>
+      update(timeEntries).replace(entry);
+
   /// Deletes the entry with [id].
   Future<int> deleteEntry(int id) =>
       (delete(timeEntries)..where((t) => t.id.equals(id))).go();

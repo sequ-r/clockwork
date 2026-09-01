@@ -2,6 +2,7 @@ import 'dart:ui' show DisplayFeatureType;
 
 import 'package:clockwork/core/di/app_dependencies.dart';
 import 'package:clockwork/features/calendar/calendar_panel.dart';
+import 'package:clockwork/features/clock/weekly_clock_screen.dart';
 import 'package:clockwork/features/quick_add/add_time_dialog.dart';
 import 'package:clockwork/features/quick_add/quick_add_host.dart';
 import 'package:clockwork/features/tags/tag_manager_dialog.dart';
@@ -83,35 +84,47 @@ class AndroidFoldableHomeShell extends StatelessWidget {
             ),
           ],
         ),
-        body: Column(
-          children: [
-            const TagFilterBar(),
-            Expanded(
-              child: TwoPane(
-                paneProportion: 0.45,
-                panePriority: isLargeScreen
-                    ? TwoPanePriority.both
-                    : TwoPanePriority.start,
-                startPane: const TodayScreen(),
-                endPane: const CalendarPanel(),
-              ),
-            ),
-          ],
+        body: ListenableBuilder(
+          listenable: appVm,
+          builder: (context, _) {
+            final tab = appVm.homeTab;
+            return IndexedStack(
+              index: tab == 0 ? 0 : 1,
+              children: [
+                const WeeklyClockScreen(),
+                Column(
+                  children: [
+                    const TagFilterBar(),
+                    Expanded(
+                      child: TwoPane(
+                        paneProportion: 0.45,
+                        panePriority: !isLargeScreen
+                            ? (tab == 1
+                                  ? TwoPanePriority.start
+                                  : TwoPanePriority.end)
+                            : TwoPanePriority.both,
+                        startPane: const TodayScreen(),
+                        endPane: const CalendarPanel(),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            );
+          },
         ),
         bottomNavigationBar: ListenableBuilder(
           listenable: appVm,
           builder: (context, _) {
-            // Hide bottom navigation bar when unfolded or wide enough for
-            // two panes.
-            if (isLargeScreen) {
-              return const SizedBox.shrink();
-            }
-
             final tab = appVm.homeTab;
             return NavigationBar(
               selectedIndex: tab,
               onDestinationSelected: appVm.setHomeTab,
               destinations: [
+                NavigationDestination(
+                  icon: const Icon(Icons.schedule),
+                  label: l10n.clockTab,
+                ),
                 NavigationDestination(
                   icon: const Icon(Icons.checklist),
                   label: l10n.todayTab,
@@ -124,10 +137,19 @@ class AndroidFoldableHomeShell extends StatelessWidget {
             );
           },
         ),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: () => _openAddTimeDialog(context),
-          icon: const Icon(Icons.add),
-          label: Text(l10n.addTimeButton),
+        floatingActionButton: ListenableBuilder(
+          listenable: appVm,
+          builder: (context, _) {
+            // The clock screen has its own inline add controls.
+            if (appVm.homeTab == 0) {
+              return const SizedBox.shrink();
+            }
+            return FloatingActionButton.extended(
+              onPressed: () => _openAddTimeDialog(context),
+              icon: const Icon(Icons.add),
+              label: Text(l10n.addTimeButton),
+            );
+          },
         ),
       ),
     );

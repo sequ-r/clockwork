@@ -65,7 +65,7 @@ class AppViewModel extends ChangeNotifier {
   /// Selected tag filter; null means all tags are visible.
   int? get tagFilter => _tagFilter;
 
-  /// Active tab index in the narrow layout (0 = Today, 1 = Calendar).
+  /// Active tab index in the home shell (0 = Clock, 1 = Today, 2 = Calendar).
   int get homeTab => _homeTab;
 
   /// Active popup window mode opened from the system tray.

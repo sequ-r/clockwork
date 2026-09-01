@@ -369,6 +369,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Project'**
   String get projectLabel;
+
+  /// Navigation label for the weekly clock main screen
+  ///
+  /// In en, this message translates to:
+  /// **'Clock'**
+  String get clockTab;
+
+  /// Heading above the weekly total clock display
+  ///
+  /// In en, this message translates to:
+  /// **'Total worked hours\nThis week'**
+  String get clockTotalWorkedHours;
+
+  /// Confirm button label when adding time
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get clockAddButton;
+
+  /// Confirm button label when removing time
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get clockRemoveButton;
+
+  /// Tooltip for the minus stepper button
+  ///
+  /// In en, this message translates to:
+  /// **'Decrease amount'**
+  String get clockDecreaseTooltip;
+
+  /// Tooltip for the plus stepper button
+  ///
+  /// In en, this message translates to:
+  /// **'Increase amount'**
+  String get clockIncreaseTooltip;
+
+  /// Confirmation after adding time from the clock screen
+  ///
+  /// In en, this message translates to:
+  /// **'{amount} added to today'**
+  String clockAddedToast(String amount);
+
+  /// Confirmation after removing time from the clock screen
+  ///
+  /// In en, this message translates to:
+  /// **'{amount} removed from today'**
+  String clockRemovedToast(String amount);
 }
 
 class _AppLocalizationsDelegate
